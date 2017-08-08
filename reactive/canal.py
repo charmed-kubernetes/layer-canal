@@ -23,7 +23,8 @@ def upgrade_charm():
     remove_state('canal.version.set')
 
 
-@when('etcd.available', 'cni.is-worker')
+@when('etcd.available', 'cni.is-worker', 'flannel.service.started',
+      'calico.service.started', 'calico.pool.configured')
 @when_not('canal.cni.configured')
 def configure_cni(etcd, cni):
     ''' Configure Calico CNI. '''
