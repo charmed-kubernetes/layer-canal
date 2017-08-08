@@ -2,8 +2,7 @@ import os
 from socket import gethostname
 from subprocess import check_call, CalledProcessError
 
-from charms.reactive import when, when_not, when_any, set_state, remove_state
-from charmhelpers.core import hookenv
+from charms.reactive import when, when_not, set_state
 from charmhelpers.core.hookenv import log, status_set, resource_get
 from charmhelpers.core.hookenv import unit_private_ip
 from charmhelpers.core.host import service_start
@@ -111,54 +110,6 @@ def start_calico_service():
     set_state('calico.service.started')
 
 
-@when('calico.binaries.installed', 'etcd.available',
-      'calico.etcd-credentials.installed')
-@when_not('calico.pool.configured')
-def configure_calico_pool(etcd):
-    ''' Configure Calico IP pool. '''
-    status_set('maintenance', 'Configuring Calico IP pool')
-    env = os.environ.copy()
-    env['ETCD_ENDPOINTS'] = etcd.get_connection_string()
-    env['ETCD_KEY_FILE'] = ETCD_KEY_PATH
-    env['ETCD_CERT_FILE'] = ETCD_CERT_PATH
-    env['ETCD_CA_CERT_FILE'] = ETCD_CA_PATH
-    config = hookenv.config()
-    context = {
-        'cidr': CALICO_CIDR,
-        'ipip': 'true' if config['ipip'] else 'false',
-        'nat_outgoing': 'true' if config['nat-outgoing'] else 'false'
-    }
-    render('pool.yaml', '/tmp/calico-pool.yaml', context)
-    cmd = '/opt/calicoctl/calicoctl apply -f /tmp/calico-pool.yaml'
-    check_call(cmd.split(), env=env)
-    set_state('calico.pool.configured')
-
-
-@when_any('config.changed.ipip', 'config.changed.nat-outgoing')
-def reconfigure_calico_pool():
-    ''' Reconfigure the Calico IP pool '''
-    remove_state('calico.pool.configured')
-
-
-@when('etcd.available', 'cni.is-worker')
-@when_not('calico.cni.configured')
-def configure_cni(etcd, cni):
-    ''' Configure Calico CNI. '''
-    status_set('maintenance', 'Configuring Calico CNI')
-    os.makedirs('/etc/cni/net.d', exist_ok=True)
-    cni_config = cni.get_config()
-    context = {
-        'connection_string': etcd.get_connection_string(),
-        'etcd_key_path': ETCD_KEY_PATH,
-        'etcd_cert_path': ETCD_CERT_PATH,
-        'etcd_ca_path': ETCD_CA_PATH,
-        'kubeconfig_path': cni_config['kubeconfig_path']
-    }
-    render('10-calico.conf', '/etc/cni/net.d/10-calico.conf', context)
-    cni.set_config(cidr=CALICO_CIDR)
-    set_state('calico.cni.configured')
-
-
 @when('etcd.available', 'calico.cni.configured',
       'calico.service.started', 'cni.is-worker')
 @when_not('calico.npc.deployed')
@@ -183,9 +134,3 @@ def deploy_network_policy_controller(etcd, cni):
     except CalledProcessError as e:
         status_set('waiting', 'Waiting for kubernetes')
         log(str(e))
-
-
-@when('calico.service.started', 'calico.pool.configured')
-@when_any('cni.is-master', 'calico.npc.deployed')
-def ready():
-    status_set('active', 'Calico is active')
