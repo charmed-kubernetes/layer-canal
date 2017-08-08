@@ -5,11 +5,12 @@ from subprocess import check_output, STDOUT
 from charms.reactive import set_state, remove_state, when, when_not, hook
 from charms.reactive import when_any
 from charms.templating.jinja2 import render
+from charmhelpers.core import hookenv
 from charmhelpers.core.hookenv import status_set, config
 from charmhelpers.core.hookenv import application_version_set
 
 
-# FIXME: duplicated from calico.py
+# This needs to match up with CALICOCTL_PATH in calico.py
 CALICOCTL_PATH = '/opt/calicoctl'
 ETCD_KEY_PATH = os.path.join(CALICOCTL_PATH, 'etcd-key')
 ETCD_CERT_PATH = os.path.join(CALICOCTL_PATH, 'etcd-cert')
@@ -19,6 +20,7 @@ ETCD_CA_PATH = os.path.join(CALICOCTL_PATH, 'etcd-ca')
 @hook('upgrade-charm')
 def upgrade_charm():
     remove_state('canal.cni.available')
+    remove_state('canal.version.set')
 
 
 @when('etcd.available', 'cni.is-worker')
@@ -44,12 +46,28 @@ def configure_cni(etcd, cni):
 @when_not('canal.version.set')
 def set_canal_version():
     ''' Surface the currently deployed version of canal to Juju '''
-    # FIXME: add calico version
+    # Get flannel version
     cmd = 'flanneld -version'
-    version = check_output(split(cmd), stderr=STDOUT).decode('utf-8')
-    if version:
-        application_version_set(version.split('v')[-1].strip())
-        set_state('canal.version.set')
+    output = check_output(split(cmd), stderr=STDOUT).decode('utf-8')
+    if not output:
+        hookenv.log('No version output from flanneld, will retry')
+        return
+    flannel_version = output.split('v')[-1].strip()
+
+    # Get calico version
+    cmd = [os.path.join(CALICOCTL_PATH, 'calicoctl'), 'version']
+    output = check_output(cmd).decode('utf-8')
+    for line in output.splitlines():
+        if line.startswith('Version:'):
+            calico_version = line.split()[1].lstrip('v')
+            break
+    else:
+        hookenv.log('No version output from calicoctl, will retry')
+        return
+
+    version = '%s/%s' % (flannel_version, calico_version)
+    application_version_set(version)
+    set_state('canal.version.set')
 
 
 @when('flannel.service.started', 'calico.service.started',

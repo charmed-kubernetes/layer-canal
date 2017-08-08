@@ -195,7 +195,6 @@ def reset_states_and_redeploy():
     ''' Remove state and redeploy '''
     remove_state('flannel.binaries.installed')
     remove_state('flannel.service.started')
-    remove_state('flannel.version.set')
     remove_state('flannel.network.configured')
     remove_state('flannel.service.installed')
 
