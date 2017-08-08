@@ -109,8 +109,7 @@ def start_calico_service():
     set_state('calico.service.started')
 
 
-@when('etcd.available', 'calico.cni.configured',
-      'calico.service.started', 'cni.is-worker')
+@when('etcd.available', 'calico.service.started', 'cni.is-worker')
 @when_not('calico.npc.deployed')
 def deploy_network_policy_controller(etcd, cni):
     ''' Deploy the Calico network policy controller. '''
