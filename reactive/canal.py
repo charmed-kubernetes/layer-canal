@@ -7,7 +7,13 @@ from charms.reactive import when_any
 from charms.templating.jinja2 import render
 from charmhelpers.core.hookenv import status_set, config
 from charmhelpers.core.hookenv import application_version_set
-from calico import ETCD_KEY_PATH, ETCD_CERT_PATH, ETCD_CA_PATH
+
+
+# FIXME: duplicated from calico.py
+CALICOCTL_PATH = '/opt/calicoctl'
+ETCD_KEY_PATH = os.path.join(CALICOCTL_PATH, 'etcd-key')
+ETCD_CERT_PATH = os.path.join(CALICOCTL_PATH, 'etcd-cert')
+ETCD_CA_PATH = os.path.join(CALICOCTL_PATH, 'etcd-ca')
 
 
 @hook('upgrade-charm')
