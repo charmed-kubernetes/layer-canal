@@ -1,28 +1,31 @@
-# Flannel Charm
+# Canal Charm
 
-Flannel is a virtual network that gives a subnet to each host for use with
-container runtimes.
+Canal is a community-driven initiative that aims to allow users to easily
+deploy Calico and flannel networking together as a unified networking solution
+- combining Calico’s industry-leading network policy enforcement with the rich
+superset of Calico and flannel overlay and non-overlay network connectivity
+options.
 
-This charm will deploy flannel as a background service, and configure CNI for
-use with flannel, on any principal charm that implements the
-[`kubernetes-cni`](https://github.com/juju-solutions/interface-kubernetes-cni) interface.
-
+This charm will deploy flannel and calico as background services, and configure
+CNI to use them, on any principal charm that implements the
+[`kubernetes-cni`](https://github.com/juju-solutions/interface-kubernetes-cni)
+interface.
 
 ## Usage
 
-The flannel charm is a
+The canal charm is a
 [subordinate](https://jujucharms.com/docs/stable/authors-subordinate-services).
 This charm will require a principal charm that implements the `kubernetes-cni`
 interface in order to properly deploy.
 
 ```
-juju deploy flannel
+juju deploy canal
 juju deploy etcd
 juju deploy kubernetes-master
 juju deploy kubernetes-worker
-juju add-relation flannel etcd
-juju add-relation flannel kubernetes-master
-juju add-relation flannel kubernetes-worker
+juju add-relation canal etcd
+juju add-relation canal kubernetes-master
+juju add-relation canal kubernetes-worker
 ```
 
 ## Configuration
@@ -50,7 +53,7 @@ generated Nagios checks will belong to.
 ## Known Limitations
 
 This subordinate does not support being co-located with other deployments of
-the flannel subordinate (to gain 2 vlans on a single application). If you
+the canal subordinate (to gain 2 vlans on a single application). If you
 require this support please file a bug.
 
 This subordinate also leverages juju-resources, so it is currently only available
@@ -59,6 +62,4 @@ on juju 2.0+ controllers.
 
 ## Further information
 
-- [Flannel Homepage](https://coreos.com/flannel/docs/latest/flannel-config.html)
-- [Flannel Charm Issue Tracker]()
-- [Flannel Issue Tracker]()
+- [Canal Project Page](https://github.com/projectcalico/canal)
