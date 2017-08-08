@@ -52,7 +52,8 @@ def set_canal_version():
         set_state('canal.version.set')
 
 
-@when('flannel.service.started', 'calico.service.started')
+@when('flannel.service.started', 'calico.service.started',
+      'calico.pool.configured')
 @when_any('cni.is-master', 'canal.cni.configured')
 def ready():
     ''' Indicate that canal is active. '''
