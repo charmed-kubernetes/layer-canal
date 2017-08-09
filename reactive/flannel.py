@@ -1,7 +1,7 @@
 import os
 import json
 from shlex import split
-from subprocess import check_output, check_call, CalledProcessError, STDOUT
+from subprocess import check_output, check_call, CalledProcessError
 
 from charms.flannel.common import retry
 
@@ -10,8 +10,7 @@ from charms.reactive import when_any
 from charms.templating.jinja2 import render
 from charmhelpers.core.host import service_start, service_stop, service_restart
 from charmhelpers.core.host import service_running, service
-from charmhelpers.core.hookenv import log, status_set, resource_get
-from charmhelpers.core.hookenv import config, application_version_set
+from charmhelpers.core.hookenv import log, status_set, resource_get, config
 from charmhelpers.contrib.charmsupport import nrpe
 
 
@@ -62,14 +61,6 @@ def install_flannel_binaries():
         install = ['install', '-v', '-D', unpacked, app_path]
         check_call(install)
     set_state('flannel.binaries.installed')
-
-
-@when('cni.is-worker')
-@when_not('flannel.cni.configured')
-def configure_cni(cni):
-    ''' Set up the flannel cni configuration file. '''
-    render('10-flannel.conf', '/etc/cni/net.d/10-flannel.conf', {})
-    set_state('flannel.cni.configured')
 
 
 @when('etcd.tls.available')
@@ -169,25 +160,6 @@ def start_flannel_service():
     set_state('flannel.service.started')
 
 
-@when('cni.connected', 'flannel.service.started', 'flannel.cni.configured')
-@when_not('flannel.cni.available')
-def set_available(cni):
-    ''' Indicate to the CNI provider that we're ready. '''
-    cni.set_config(cidr=config('cidr'))
-    set_state('flannel.cni.available')
-
-
-@when('flannel.binaries.installed')
-@when_not('flannel.version.set')
-def set_flannel_version():
-    ''' Surface the currently deployed version of flannel to Juju '''
-    cmd = 'flanneld -version'
-    version = check_output(split(cmd), stderr=STDOUT).decode('utf-8')
-    if version:
-        application_version_set(version.split('v')[-1].strip())
-        set_state('flannel.version.set')
-
-
 @when('nrpe-external-master.available')
 @when_not('nrpe-external-master.initial-config')
 def initial_nrpe_config(nagios=None):
@@ -212,16 +184,6 @@ def update_nrpe_config(unused=None):
     nrpe_setup.write()
 
 
-@when('flannel.service.started')
-@when_any('cni.is-master', 'flannel.cni.available')
-def ready():
-    ''' Indicate that flannel is active. '''
-    try:
-        status_set('active', 'Flannel subnet ' + get_flannel_subnet())
-    except FlannelSubnetNotFound:
-        status_set('waiting', 'Waiting for Flannel')
-
-
 @when_not('etcd.connected')
 def halt_execution():
     ''' send a clear message to the user that we are waiting on etcd '''
@@ -231,10 +193,8 @@ def halt_execution():
 @hook('upgrade-charm')
 def reset_states_and_redeploy():
     ''' Remove state and redeploy '''
-    remove_state('flannel.cni.available')
     remove_state('flannel.binaries.installed')
     remove_state('flannel.service.started')
-    remove_state('flannel.version.set')
     remove_state('flannel.network.configured')
     remove_state('flannel.service.installed')
 
@@ -268,17 +228,3 @@ def cleanup_deployment():
         if os.path.exists(f):
             log('Removing {}'.format(f))
             os.remove(f)
-
-
-def get_flannel_subnet():
-    ''' Returns the flannel subnet reserved for this unit '''
-    try:
-        with open('/run/flannel/subnet.env') as f:
-            raw_data = dict(line.strip().split('=') for line in f)
-        return raw_data['FLANNEL_SUBNET']
-    except FileNotFoundError as e:
-        raise FlannelSubnetNotFound() from e
-
-
-class FlannelSubnetNotFound(Exception):
-    pass
