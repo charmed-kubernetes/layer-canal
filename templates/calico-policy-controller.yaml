@@ -40,4 +40,3 @@ spec:
         - name: calicoctl
           hostPath:
             path: /opt/calicoctl
-              
