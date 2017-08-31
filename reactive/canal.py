@@ -44,7 +44,7 @@ def configure_cni(etcd, cni):
 
 
 @when('flannel.binaries.installed', 'calico.binaries.installed')
-@when_not('canal.version.set')
+@when_not('canal.version.set', 'canal.stopping')
 def set_canal_version():
     ''' Surface the currently deployed version of canal to Juju '''
     # Get flannel version
@@ -72,6 +72,11 @@ def ready():
         status_set('active', 'Flannel subnet ' + get_flannel_subnet())
     except FlannelSubnetNotFound:
         status_set('waiting', 'Waiting for Flannel')
+
+
+@hook('stop')
+def stop():
+    set_state('canal.stopping')
 
 
 def get_flannel_subnet():
