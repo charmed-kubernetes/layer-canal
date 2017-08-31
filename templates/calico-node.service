@@ -27,6 +27,7 @@ ExecStart=/usr/bin/docker run --net=host --privileged --name=calico-node \
   -v /var/log/calico:/var/log/calico \
   -v /opt/calicoctl:/opt/calicoctl \
   quay.io/calico/node:v2.5.1
+# Please refer to layer-canal/versioning.md before changing the version above.
 ExecStop=/usr/bin/docker rm -f calico-node
 Restart=always
 RestartSec=10
