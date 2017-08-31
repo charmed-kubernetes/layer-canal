@@ -44,7 +44,7 @@ def configure_cni(etcd, cni):
 
 
 @when('flannel.binaries.installed', 'calico.binaries.installed')
-@when_not('canal.version.set')
+@when_not('canal.version.set', 'canal.stopping')
 def set_canal_version():
     ''' Surface the currently deployed version of canal to Juju '''
     # Get flannel version
@@ -55,16 +55,8 @@ def set_canal_version():
         return
     flannel_version = output.split('v')[-1].strip()
 
-    # Get calico version
-    cmd = [os.path.join(CALICOCTL_PATH, 'calicoctl'), 'version']
-    output = check_output(cmd).decode('utf-8')
-    for line in output.splitlines():
-        if line.startswith('Version:'):
-            calico_version = line.split()[1].lstrip('v')
-            break
-    else:
-        hookenv.log('No version output from calicoctl, will retry')
-        return
+    # Please refer to layer-canal/versioning.md before changing this.
+    calico_version = '2.5.1'
 
     version = '%s/%s' % (flannel_version, calico_version)
     application_version_set(version)
@@ -80,6 +72,11 @@ def ready():
         status_set('active', 'Flannel subnet ' + get_flannel_subnet())
     except FlannelSubnetNotFound:
         status_set('waiting', 'Waiting for Flannel')
+
+
+@hook('stop')
+def stop():
+    set_state('canal.stopping')
 
 
 def get_flannel_subnet():

@@ -1,0 +1,11 @@
+# layer-canal devs: How to bump Calico release versions
+
+TODO: fix this lousy process
+
+1. Check the component versions: https://docs.projectcalico.org/v2.5/releases/
+   (substitute v2.5 for latest version)
+2. Update calicoctl and calico-cni versions in build-calico-resource.sh
+3. Update calico-node version in templates/calico-node.service
+4. Update calico-policy-controller version in
+   templates/calico-policy-controller.yaml
+5. Update calico_version in reactive/canal.py set_canal_version function

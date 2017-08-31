@@ -19,6 +19,7 @@ spec:
       hostNetwork: true
       containers:
         - name: calico-policy-controller
+          # Please refer to layer-canal/versioning.md before changing this
           image: quay.io/calico/kube-policy-controller:v0.7.0
           env:
             - name: ETCD_ENDPOINTS
