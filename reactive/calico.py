@@ -97,7 +97,8 @@ def install_calico_service(etcd):
         'etcd_cert_path': ETCD_CERT_PATH,
         'nodename': gethostname(),
         # specify IP so calico doesn't grab a silly one from, say, lxdbr0
-        'ip': unit_private_ip()
+        'ip': unit_private_ip(),
+        'calico_node_image': hookenv.config('calico-node-image'),
     })
     set_state('calico.service.installed')
 
@@ -151,7 +152,8 @@ def deploy_network_policy_controller(etcd, cni):
         'connection_string': etcd.get_connection_string(),
         'etcd_key_path': ETCD_KEY_PATH,
         'etcd_cert_path': ETCD_CERT_PATH,
-        'etcd_ca_path': ETCD_CA_PATH
+        'etcd_ca_path': ETCD_CA_PATH,
+        'calico_policy_image': hookenv.config('calico-policy-image')
     }
     render('calico-policy-controller.yaml', '/tmp/policy-controller.yaml',
            context)
