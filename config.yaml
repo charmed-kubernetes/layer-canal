@@ -1,4 +1,20 @@
 options:
+  calico-node-image:
+    type: string
+    # Please refer to layer-canal/versioning.md before changing the version below.
+    default: quay.io/calico/node:v2.5.1
+    description: |
+      The image id to use for calico/node.
+  calico-policy-image:
+    type: string
+    default: quay.io/calico/kube-policy-controller:v0.7.0
+    description: |
+      The image id to use for calico/kube-policy-controller.
+  cidr:
+    type: string
+    default: 10.1.0.0/16
+    description: |
+      Network CIDR to assign to Flannel
   iface:
     type: string
     default: ""
@@ -6,8 +22,3 @@ options:
       The interface to bind flannel overlay networking. The default value is
       the result of running the following command:
       `route | grep default | head -n 1 | awk {'print $8'}`.
-  cidr:
-    type: string
-    default: 10.1.0.0/16
-    description: |
-      Network CIDR to assign to Flannel
