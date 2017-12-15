@@ -21,6 +21,12 @@ ETCD_CA_PATH = os.path.join(CALICOCTL_PATH, 'etcd-ca')
 def upgrade_charm():
     remove_state('canal.cni.available')
     remove_state('canal.version.set')
+    remove_state('canal.cni.configured')
+    try:
+        hookenv.log('Deleting /etc/cni/net.d/10-canal.conf')
+        os.remove('/etc/cni/net.d/10-canal.conf')
+    except FileNotFoundError as e:
+        hookenv.log(e)
 
 
 @when('etcd.available', 'cni.is-worker', 'flannel.service.started',
@@ -38,7 +44,7 @@ def configure_cni(etcd, cni):
         'etcd_ca_path': ETCD_CA_PATH,
         'kubeconfig_path': cni_config['kubeconfig_path']
     }
-    render('10-canal.conf', '/etc/cni/net.d/10-canal.conf', context)
+    render('10-canal.conflist', '/etc/cni/net.d/10-canal.conflist', context)
     cni.set_config(cidr=config('cidr'))
     set_state('canal.cni.configured')
 

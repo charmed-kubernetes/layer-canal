@@ -1,7 +1,9 @@
 {
-    "name": "cdk-canal",
-    "type": "flannel",
-    "delegate": {
+  "name": "cdk-canal",
+  "plugins": [
+    {
+      "type": "flannel",
+      "delegate": {
         "type": "calico",
         "etcd_endpoints": "{{ connection_string }}",
         "etcd_key_file": "{{ etcd_key_path }}",
@@ -9,10 +11,17 @@
         "etcd_ca_cert_file": "{{ etcd_ca_path }}",
         "log_level": "info",
         "policy": {
-            "type": "k8s"
+          "type": "k8s"
         },
         "kubernetes": {
-            "kubeconfig": "{{ kubeconfig_path }}"
+          "kubeconfig": "{{ kubeconfig_path }}"
         }
+      }
+    },
+    {
+      "type": "portmap",
+      "capabilities": {"portMappings": true},
+      "snat": true
     }
+  ]
 }
