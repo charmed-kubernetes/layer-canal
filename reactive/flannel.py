@@ -53,7 +53,8 @@ def install_flannel_binaries():
         {'name': 'etcdctl', 'path': '/usr/local/bin'},
         {'name': 'flannel', 'path': '/opt/cni/bin'},
         {'name': 'bridge', 'path': '/opt/cni/bin'},
-        {'name': 'host-local', 'path': '/opt/cni/bin'}
+        {'name': 'host-local', 'path': '/opt/cni/bin'},
+        {'name': 'portmap', 'path': '/opt/cni/bin'}
     ]
     for app in apps:
         unpacked = os.path.join(unpack_path, app['name'])
