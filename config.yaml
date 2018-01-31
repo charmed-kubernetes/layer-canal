@@ -20,5 +20,4 @@ options:
     default: ""
     description: |
       The interface to bind flannel overlay networking. The default value is
-      the result of running the following command:
-      `route | grep default | head -n 1 | awk {'print $8'}`.
+      the interface bound to the cni endpoint.
