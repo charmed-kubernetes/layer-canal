@@ -5,6 +5,7 @@
       "type": "flannel",
       "delegate": {
         "type": "calico",
+        "hairpinMode": true,
         "etcd_endpoints": "{{ connection_string }}",
         "etcd_key_file": "{{ etcd_key_path }}",
         "etcd_cert_file": "{{ etcd_cert_path }}",
