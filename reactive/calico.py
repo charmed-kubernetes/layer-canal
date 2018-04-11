@@ -3,10 +3,13 @@ from socket import gethostname
 from subprocess import call, check_call, CalledProcessError
 
 from charms.reactive import when, when_not, when_any, set_state, remove_state
+from charms.reactive import endpoint_from_flag
+from charms.reactive.flags import clear_flag
+from charms.reactive.helpers import data_changed
 from charmhelpers.core import hookenv
 from charmhelpers.core.hookenv import log, status_set, resource_get
 from charmhelpers.core.hookenv import unit_private_ip
-from charmhelpers.core.host import service, service_start
+from charmhelpers.core.host import service, service_restart
 from charmhelpers.core.templating import render
 
 # TODO:
@@ -108,13 +111,19 @@ def get_bind_address():
 @when('calico.binaries.installed', 'etcd.available',
       'calico.etcd-credentials.installed')
 @when_not('calico.service.installed')
-def install_calico_service(etcd):
+def install_calico_service():
     ''' Install the calico-node systemd service. '''
     status_set('maintenance', 'Installing calico-node service.')
+
+    # keep track of our etcd connections so we can detect when it changes later
+    etcd = endpoint_from_flag('etcd.available')
+    etcd_connections = etcd.get_connection_string()
+    data_changed('calico_etcd_connections', etcd_connections)
+
     service_path = os.path.join(os.sep, 'lib', 'systemd', 'system',
                                 'calico-node.service')
     render('calico-node.service', service_path, {
-        'connection_string': etcd.get_connection_string(),
+        'connection_string': etcd_connections,
         'etcd_key_path': ETCD_KEY_PATH,
         'etcd_ca_path': ETCD_CA_PATH,
         'etcd_cert_path': ETCD_CERT_PATH,
@@ -124,6 +133,7 @@ def install_calico_service(etcd):
         'calico_node_image': hookenv.config('calico-node-image'),
     })
     set_state('calico.service.installed')
+    remove_state('calico.service.started')
 
 
 @when('calico.service.installed', 'docker.available')
@@ -131,7 +141,8 @@ def install_calico_service(etcd):
 def start_calico_service():
     ''' Start the calico systemd service. '''
     status_set('maintenance', 'Starting calico-node service.')
-    service_start('calico-node')
+    # NB: restart will start the svc whether it is currently started or not
+    service_restart('calico-node')
     service('enable', 'calico-node')
     set_state('calico.service.started')
 
@@ -191,3 +202,29 @@ def deploy_network_policy_controller(etcd, cni):
     except CalledProcessError as e:
         status_set('waiting', 'Waiting for kubernetes')
         log(str(e))
+
+
+@when('etcd.available')
+@when_any('calico.service.installed', 'calico.npc.deployed',
+          'canal.cni.configured')
+def ensure_etcd_connections():
+    '''Ensure etcd connection strings are accurate.
+
+    Etcd connection info is written to config files when various install/config
+    handlers are run. Watch this info for changes, and when changed, remove
+    relevant flags to make sure accurate config is regenerated.
+    '''
+    etcd = endpoint_from_flag('etcd.available')
+    if data_changed('calico_etcd_connections', etcd.get_connection_string()):
+        # NB: dont bother guarding clear_flag with is_flag_set; it's safe to
+        # clear an unset flag.
+        clear_flag('calico.service.installed')
+        clear_flag('calico.npc.deployed')
+
+        # Canal config (from ./canal.py) is dependent on calico; if etcd
+        # changed, set ourselves up to (re)configure those canal bits.
+        clear_flag('canal.cni.configured')
+
+        # Clearing the above flags will change config that the calico-node
+        # service depends on. Set ourselves up to (re)invoke the start handler.
+        clear_flag('calico.service.started')
