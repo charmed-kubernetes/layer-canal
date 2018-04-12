@@ -7,6 +7,9 @@ from charms.flannel.common import retry
 
 from charms.reactive import set_state, remove_state, when, when_not, hook
 from charms.reactive import when_any
+from charms.reactive import endpoint_from_flag
+from charms.reactive.flags import clear_flag
+from charms.reactive.helpers import data_changed
 from charms.templating.jinja2 import render
 from charmhelpers.core.host import service_start, service_stop, service_restart
 from charmhelpers.core.host import service_running, service
@@ -112,12 +115,18 @@ def get_bind_address_interface():
 @when('flannel.binaries.installed', 'flannel.etcd.credentials.installed',
       'etcd.tls.available')
 @when_not('flannel.service.installed')
-def install_flannel_service(etcd):
+def install_flannel_service():
     ''' Install the flannel service. '''
     status_set('maintenance', 'Installing flannel service.')
+
+    # keep track of our etcd connections so we can detect when it changes later
+    etcd = endpoint_from_flag('etcd.tls.available')
+    etcd_connections = etcd.get_connection_string()
+    data_changed('flannel_etcd_connections', etcd_connections)
+
     iface = config('iface') or get_bind_address_interface()
     context = {'iface': iface,
-               'connection_string': etcd.get_connection_string(),
+               'connection_string': etcd_connections,
                'cert_path': ETCD_PATH}
     render('flannel.service', '/lib/systemd/system/flannel.service', context)
     service('enable', 'flannel')
@@ -220,6 +229,23 @@ def update_nrpe_config(unused=None):
 def halt_execution():
     ''' send a clear message to the user that we are waiting on etcd '''
     status_set('blocked', 'Waiting for etcd relation.')
+
+
+@when('etcd.available', 'flannel.service.installed')
+def ensure_etcd_connections():
+    '''Ensure etcd connection strings are accurate.
+
+    Etcd connection info is written to config files when various install/config
+    handlers are run. Watch this data for changes, and when changed, remove
+    relevant flags to make sure accurate config is regenerated.
+    '''
+    etcd = endpoint_from_flag('etcd.available')
+    if data_changed('flannel_etcd_connections', etcd.get_connection_string()):
+        clear_flag('flannel.service.installed')
+
+        # Clearing the above flag will change config that the flannel
+        # service depends on. Set ourselves up to (re)invoke the start handler.
+        clear_flag('flannel.service.started')
 
 
 @hook('upgrade-charm')
