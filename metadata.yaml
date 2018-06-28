@@ -13,6 +13,7 @@ maintainers:
   - Konstantinos Tsakalozos <kos.tsakalozos@canonical.com>
 series:
   - xenial
+  - bionic
 subordinate: true
 tags:
   - networking
