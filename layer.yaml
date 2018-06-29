@@ -5,3 +5,4 @@ includes:
    - 'layer:basic'
    - 'layer:docker'
    - 'layer:nagios'
+repo: https://github.com/juju-solutions/layer-canal.git
