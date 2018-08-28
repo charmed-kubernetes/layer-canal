@@ -7,22 +7,22 @@ the rich superset of Calico and flannel overlay and non-overlay network
 connectivity options.
 
 This charm will deploy flannel and calico as background services, and configure
-CNI to use them, on any principal charm that implements the
-[`kubernetes-cni`](https://github.com/juju-solutions/interface-kubernetes-cni)
+CNI to use them, on any principal charm that implements the [kubernetes-cni][]
 interface.
+
+[kubernetes-cni]: https://github.com/juju-solutions/interface-kubernetes-cni
 
 ## Usage
 
-The canal charm is a
-[subordinate](https://jujucharms.com/docs/stable/authors-subordinate-services).
-This charm will require a principal charm that implements the `kubernetes-cni`
-interface in order to properly deploy.
+The canal charm is a [subordinate][]. This charm will require a principal charm
+that implements the `kubernetes-cni` interface in order to properly deploy.
 
+[subordinate]: https://docs.jujucharms.com/2.4/en/authors-subordinate-applications
 ```
-juju deploy canal
-juju deploy etcd
-juju deploy kubernetes-master
-juju deploy kubernetes-worker
+juju deploy cs:~containers/canal
+juju deploy cs:~containers/etcd
+juju deploy cs:~containers/kubernetes-master
+juju deploy cs:~containers/kubernetes-worker
 juju add-relation canal etcd
 juju add-relation canal kubernetes-master
 juju add-relation canal kubernetes-worker
@@ -56,8 +56,8 @@ This subordinate does not support being co-located with other deployments of
 the canal subordinate (to gain 2 vlans on a single application). If you
 require this support please file a bug.
 
-This subordinate also leverages juju-resources, so it is currently only available
-on juju 2.0+ controllers.
+This subordinate also leverages juju-resources, so it is currently only
+available on juju 2.0+ controllers.
 
 
 ## Further information
