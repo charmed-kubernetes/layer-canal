@@ -1,16 +1,17 @@
 name: canal
 summary: A Software Defined Network based on Flannel and Calico
-description: |
-  Canal is a community-driven initiative that aims to allow users to easily
-  deploy Calico and flannel networking together as a unified networking
-  solution - combining Calico’s industry-leading network policy enforcement
-  with the rich superset of Calico and flannel overlay and non-overlay network
-  connectivity options.
 maintainers:
   - Tim Van Steenburgh <tim.van.steenburgh@canonical.com>
   - George Kraft <george.kraft@canonical.com>
-  - Rye Terrell <rye.terrell@canonical.com>
   - Konstantinos Tsakalozos <kos.tsakalozos@canonical.com>
+  - Mike Wilson <mike.wilson@canonical.com>
+  - Kevin Monroe <kevin.monroe@canonical.com>
+description: |
+  Canal is a community-driven initiative that aims to allow users to easily
+  deploy Calico and flannel networking together as a unified networking
+  solution - combining Calico's industry-leading network policy enforcement
+  with the rich superset of Calico and flannel overlay and non-overlay network
+  connectivity options.
 series:
   - xenial
   - bionic
@@ -27,8 +28,16 @@ resources:
   flannel:
     type: file
     filename: flannel.tar.gz
-    description: "A tarball packaged release of flannel"
+    description: 'Flannel resource tarball for amd64'
+  flannel-arm64:
+    type: file
+    filename: flannel.tar.gz
+    description: 'Flannel resource tarball for arm64'
   calico:
     type: file
     filename: calico.tar.gz
-    description: 'Calico resource tarball.'
+    description: 'Calico resource tarball for amd64'
+  calico-arm64:
+    type: file
+    filename: calico.tar.gz
+    description: 'Calico resource tarball for arm64'

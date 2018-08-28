@@ -2,6 +2,8 @@ import os
 from socket import gethostname
 from subprocess import call, check_call, CalledProcessError
 
+from charms.layer.canal import arch
+
 from charms.reactive import when, when_not, when_any, set_state, remove_state
 from charms.reactive import endpoint_from_flag
 from charms.reactive.flags import clear_flag
@@ -27,8 +29,15 @@ ETCD_CA_PATH = os.path.join(CALICOCTL_PATH, 'etcd-ca')
 @when_not('calico.binaries.installed')
 def install_calico_binaries():
     ''' Unpack the Calico binaries. '''
+    # on intel, the resource is called 'calico'; other arches have a suffix
+    architecture = arch()
+    if architecture == 'amd64':
+        resource_name = 'calico'
+    else:
+        resource_name = 'calico-{}'.format(architecture)
+
     try:
-        archive = resource_get('calico')
+        archive = resource_get(resource_name)
     except Exception:
         message = 'Error fetching the calico resource.'
         log(message)
