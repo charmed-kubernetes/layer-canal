@@ -3,7 +3,7 @@ import json
 from shlex import split
 from subprocess import check_output, check_call, CalledProcessError
 
-from charms.flannel.common import retry
+from charms.layer.canal import arch, retry
 
 from charms.reactive import set_state, remove_state, when, when_not, hook
 from charms.reactive import when_any
@@ -27,8 +27,15 @@ ETCD_CA_PATH = os.path.join(ETCD_PATH, 'client-ca.pem')
 @when_not('flannel.binaries.installed')
 def install_flannel_binaries():
     ''' Unpack the Flannel binaries. '''
+    # on intel, the resource is called 'flannel'; other arches have a suffix
+    architecture = arch()
+    if architecture == 'amd64':
+        resource_name = 'flannel'
+    else:
+        resource_name = 'flannel-{}'.format(architecture)
+
     try:
-        archive = resource_get('flannel')
+        archive = resource_get(resource_name)
     except Exception:
         message = 'Error fetching the flannel resource.'
         log(message)
