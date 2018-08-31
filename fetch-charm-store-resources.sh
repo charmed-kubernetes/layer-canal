@@ -2,9 +2,13 @@
 set -eux
 
 # This script will download the resources associated with each charm that
-# canal cares about (ie, flannel and calico). By default, it will pull charm
-# resources from the edge channel. Call it with edge|beta|candidate|stable as
-# the first arg if you to specify the channel.
+# canal cares about (ie, flannel and calico) from the charm store. By default,
+# it will pull charm resources from the edge channel. Call it with
+# edge|beta|candidate|stable as the first arg to specify the channel.
+#
+# If you need to construct new resources from upstream binaries, see the
+# build-canal-resources.sh script in this repository.
+
 channel=${1:-}
 if [ -z ${channel} ]; then
   channel="edge"
