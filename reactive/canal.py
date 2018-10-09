@@ -3,7 +3,7 @@ from shlex import split
 from subprocess import check_output, STDOUT
 
 from charms.reactive import set_state, remove_state, when, when_not, hook
-from charms.reactive import when_any
+from charms.reactive import endpoint_from_flag
 from charms.templating.jinja2 import render
 from charmhelpers.core import hookenv
 from charmhelpers.core.hookenv import status_set, config
@@ -29,13 +29,15 @@ def upgrade_charm():
         hookenv.log(e)
 
 
-@when('etcd.available', 'cni.is-worker', 'flannel.service.started',
+@when('etcd.available', 'cni.connected', 'flannel.service.started',
       'calico.service.started', 'calico.pool.configured')
 @when_not('canal.cni.configured')
-def configure_cni(etcd, cni):
+def configure_cni():
     ''' Configure Calico CNI. '''
     status_set('maintenance', 'Configuring Calico CNI')
     os.makedirs('/etc/cni/net.d', exist_ok=True)
+    cni = endpoint_from_flag('cni.connected')
+    etcd = endpoint_from_flag('etcd.available')
     cni_config = cni.get_config()
     context = {
         'connection_string': etcd.get_connection_string(),
@@ -71,7 +73,7 @@ def set_canal_version():
 
 @when('flannel.service.started', 'calico.service.started',
       'calico.pool.configured')
-@when_any('cni.is-master', 'canal.cni.configured')
+@when('canal.cni.configured')
 def ready():
     ''' Indicate that canal is active. '''
     try:
