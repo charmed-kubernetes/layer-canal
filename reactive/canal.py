@@ -39,9 +39,6 @@ def configure_cni():
     cni = endpoint_from_flag('cni.configured')
     etcd = endpoint_from_flag('etcd.available')
     cni_config = cni.get_config()
-    if 'kubeconfig_path' not in cni_config:
-        hookenv.log('Unable to get configuration for cni. Will retry.')
-        return
     context = {
         'connection_string': etcd.get_connection_string(),
         'etcd_key_path': ETCD_KEY_PATH,
