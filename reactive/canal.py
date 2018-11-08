@@ -8,6 +8,7 @@ from charms.templating.jinja2 import render
 from charmhelpers.core import hookenv
 from charmhelpers.core.hookenv import status_set, config
 from charmhelpers.core.hookenv import application_version_set
+from charmhelpers.core.host import service_running
 
 
 # This needs to match up with CALICOCTL_PATH in calico.py
@@ -71,15 +72,29 @@ def set_canal_version():
     set_state('canal.version.set')
 
 
+def get_failing_services():
+    failing_services = []
+    services = ['calico-node', 'flannel']
+    for service in services:
+        if not service_running(service):
+            failing_services.append(service)
+    return failing_services
+
+
 @when('flannel.service.started', 'calico.service.started',
       'calico.pool.configured')
 @when('canal.cni.configured')
 def ready():
     ''' Indicate that canal is active. '''
-    try:
-        status_set('active', 'Flannel subnet ' + get_flannel_subnet())
-    except FlannelSubnetNotFound:
-        status_set('waiting', 'Waiting for Flannel')
+    failing_services = get_failing_services()
+    if len(failing_services) > 0:
+        msg = 'Waiting for service: {}'.format(', '.join(failing_services))
+        status_set('waiting', msg)
+    else:
+        try:
+            status_set('active', 'Flannel subnet ' + get_flannel_subnet())
+        except FlannelSubnetNotFound:
+            status_set('waiting', 'Waiting for Flannel')
 
 
 @hook('stop')
