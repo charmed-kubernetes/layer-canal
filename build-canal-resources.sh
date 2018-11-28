@@ -11,7 +11,7 @@ set -eux
 command -v git >/dev/null 2>&1 || { echo 'git: command not found'; exit 1; }
 
 calico_repo="https://github.com/juju-solutions/layer-calico.git"
-flannel_repo="https://github.com/juju-solutions/kubernetes-jenkins.git"
+flannel_repo="https://github.com/juju-solutions/charm-flannel.git"
 canal_root="${PWD}"
 canal_temp="${canal_root}/temp"
 
@@ -30,7 +30,7 @@ popd
 git clone --depth 1 --single-branch --branch master \
   $flannel_repo "${canal_temp}/flannel"
 pushd ${canal_temp}/flannel
-./resources/jenkins-repackage-resources.sh
+./build-flannel-resources.sh
 mv flannel-*.gz ${canal_root}
 popd
 
