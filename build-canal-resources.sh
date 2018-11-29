@@ -7,6 +7,8 @@ set -eux
 # If you want to fetch existing resources from the calico and flannel charms
 # in the charm store, see fetch-charm-store-resources.sh in this repository.
 
+ARCH=${ARCH:-"amd64 arm64"}
+
 # 'git' is required
 command -v git >/dev/null 2>&1 || { echo 'git: command not found'; exit 1; }
 
@@ -30,7 +32,7 @@ popd
 git clone --depth 1 --single-branch --branch master \
   $flannel_repo "${canal_temp}/flannel"
 pushd ${canal_temp}/flannel
-./build-flannel-resources.sh
+ARCH="$ARCH" ./build-flannel-resources.sh
 mv flannel-*.gz ${canal_root}
 popd
 
