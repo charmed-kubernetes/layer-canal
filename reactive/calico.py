@@ -171,7 +171,7 @@ def configure_calico_pool(etcd):
     context = {
         'cidr': config['cidr']
     }
-    render('calico-pool.yaml', '/tmp/calico-pool.yaml', context)
+    render('pool.yaml', '/tmp/calico-pool.yaml', context)
     cmd = '/opt/calicoctl/calicoctl apply -f /tmp/calico-pool.yaml'
     exit_code = call(cmd.split(), env=env)
     if exit_code != 0:
