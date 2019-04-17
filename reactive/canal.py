@@ -31,7 +31,7 @@ def upgrade_charm():
 
 
 @when('etcd.available', 'cni.configured', 'flannel.service.started',
-      'calico.service.started', 'calico.pool.configured')
+      'calico.service.installed', 'calico.pool.configured')
 @when_not('canal.cni.configured')
 def configure_cni():
     ''' Configure Calico CNI. '''
@@ -81,7 +81,7 @@ def get_failing_services():
     return failing_services
 
 
-@when('flannel.service.started', 'calico.service.started',
+@when('flannel.service.started', 'calico.service.installed',
       'calico.pool.configured')
 @when('canal.cni.configured')
 def ready():
