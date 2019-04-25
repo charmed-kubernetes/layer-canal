@@ -1,4 +1,5 @@
 import os
+import traceback
 from shlex import split
 from subprocess import check_output, STDOUT
 
@@ -36,6 +37,12 @@ def upgrade_charm():
 def configure_cni():
     ''' Configure Calico CNI. '''
     status_set('maintenance', 'Configuring Calico CNI')
+    try:
+        subnet = get_flannel_subnet()
+    except FlannelSubnetNotFound:
+        hookenv.log(traceback.format_exc())
+        status_set('waiting', 'Waiting for Flannel')
+        return
     os.makedirs('/etc/cni/net.d', exist_ok=True)
     cni = endpoint_from_flag('cni.configured')
     etcd = endpoint_from_flag('etcd.available')
@@ -45,7 +52,8 @@ def configure_cni():
         'etcd_key_path': ETCD_KEY_PATH,
         'etcd_cert_path': ETCD_CERT_PATH,
         'etcd_ca_path': ETCD_CA_PATH,
-        'kubeconfig_path': cni_config['kubeconfig_path']
+        'kubeconfig_path': cni_config['kubeconfig_path'],
+        'subnet': subnet
     }
     render('10-canal.conflist', '/etc/cni/net.d/10-canal.conflist', context)
     cni.set_config(cidr=config('cidr'))
