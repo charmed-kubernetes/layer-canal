@@ -1,4 +1,5 @@
 import os
+import traceback
 from shlex import split
 from subprocess import check_output, STDOUT
 
@@ -31,11 +32,17 @@ def upgrade_charm():
 
 
 @when('etcd.available', 'cni.configured', 'flannel.service.started',
-      'calico.service.started', 'calico.pool.configured')
+      'calico.service.installed', 'calico.pool.configured')
 @when_not('canal.cni.configured')
 def configure_cni():
     ''' Configure Calico CNI. '''
     status_set('maintenance', 'Configuring Calico CNI')
+    try:
+        subnet = get_flannel_subnet()
+    except FlannelSubnetNotFound:
+        hookenv.log(traceback.format_exc())
+        status_set('waiting', 'Waiting for Flannel')
+        return
     os.makedirs('/etc/cni/net.d', exist_ok=True)
     cni = endpoint_from_flag('cni.configured')
     etcd = endpoint_from_flag('etcd.available')
@@ -45,7 +52,8 @@ def configure_cni():
         'etcd_key_path': ETCD_KEY_PATH,
         'etcd_cert_path': ETCD_CERT_PATH,
         'etcd_ca_path': ETCD_CA_PATH,
-        'kubeconfig_path': cni_config['kubeconfig_path']
+        'kubeconfig_path': cni_config['kubeconfig_path'],
+        'subnet': subnet
     }
     render('10-canal.conflist', '/etc/cni/net.d/10-canal.conflist', context)
     cni.set_config(cidr=config('cidr'))
@@ -65,7 +73,7 @@ def set_canal_version():
     flannel_version = output.split('v')[-1].strip()
 
     # Please refer to layer-canal/versioning.md before changing this.
-    calico_version = '2.6.12'
+    calico_version = '3.6.1'
 
     version = '%s/%s' % (flannel_version, calico_version)
     application_version_set(version)
@@ -81,7 +89,7 @@ def get_failing_services():
     return failing_services
 
 
-@when('flannel.service.started', 'calico.service.started',
+@when('flannel.service.started', 'calico.service.installed',
       'calico.pool.configured')
 @when('canal.cni.configured')
 def ready():

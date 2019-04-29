@@ -1,16 +1,19 @@
 import os
+import traceback
+import yaml
 from socket import gethostname
-from subprocess import call, check_call, CalledProcessError
+from subprocess import check_call, check_output, CalledProcessError
 
+import calico_upgrade
 from charms.layer.canal import arch
-
-from charms.reactive import when, when_not, when_any, set_state, remove_state
-from charms.reactive import endpoint_from_flag
+from charms.leadership import leader_get, leader_set
+from charms.reactive import when, when_not, when_any, set_state, \
+    remove_state, endpoint_from_flag, hook
 from charms.reactive.flags import clear_flag
 from charms.reactive.helpers import data_changed
 from charmhelpers.core import hookenv
-from charmhelpers.core.hookenv import log, status_set, resource_get
-from charmhelpers.core.hookenv import unit_private_ip
+from charmhelpers.core.hookenv import log, status_set, resource_get, \
+    unit_private_ip, is_leader
 from charmhelpers.core.host import service, service_restart
 from charmhelpers.core.templating import render
 
@@ -24,8 +27,89 @@ CALICOCTL_PATH = '/opt/calicoctl'
 ETCD_KEY_PATH = os.path.join(CALICOCTL_PATH, 'etcd-key')
 ETCD_CERT_PATH = os.path.join(CALICOCTL_PATH, 'etcd-cert')
 ETCD_CA_PATH = os.path.join(CALICOCTL_PATH, 'etcd-ca')
+CALICO_UPGRADE_DIR = '/opt/calico-upgrade'
 
 
+@hook('upgrade-charm')
+def upgrade_charm():
+    remove_state('calico.binaries.installed')
+    remove_state('calico.service.installed')
+    remove_state('calico.pool.configured')
+    remove_state('calico.npc.deployed')
+    if is_leader() and not leader_get('calico-v3-data-ready'):
+        leader_set({
+            'calico-v3-data-migration-needed': True,
+            'calico-v3-npc-cleanup-needed': True,
+            'calico-v3-completion-needed': True
+        })
+
+
+@when('leadership.is_leader', 'leadership.set.calico-v3-data-migration-needed',
+      'etcd.available', 'calico.etcd-credentials.installed')
+def upgrade_v3_migrate_data():
+    status_set('maintenance', 'Migrating data to Calico 3')
+    try:
+        calico_upgrade.configure()
+        calico_upgrade.dry_run()
+        calico_upgrade.start()
+    except Exception:
+        log(traceback.format_exc())
+        message = 'Calico upgrade failed, see debug log'
+        status_set('blocked', message)
+        return
+    leader_set({'calico-v3-data-migration-needed': None})
+
+
+@when('leadership.is_leader')
+@when_not('leadership.set.calico-v3-data-migration-needed')
+def v3_data_ready():
+    leader_set({'calico-v3-data-ready': True})
+
+
+@when('leadership.is_leader', 'leadership.set.calico-v3-data-ready',
+      'leadership.set.calico-v3-npc-cleanup-needed')
+def upgrade_v3_npc_cleanup():
+    status_set('maintenance', 'Cleaning up Calico 2 policy controller')
+
+    resources = [
+        ('Deployment', 'kube-system', 'calico-policy-controller'),
+        ('ClusterRoleBinding', None, 'calico-policy-controller'),
+        ('ClusterRole', None, 'calico-policy-controller'),
+        ('ServiceAccount', 'kube-system', 'calico-policy-controller')
+    ]
+
+    for kind, namespace, name in resources:
+        args = ['delete', '--ignore-not-found', kind, name]
+        if namespace:
+            args += ['-n', namespace]
+        try:
+            kubectl(*args)
+        except CalledProcessError:
+            log('Failed to cleanup %s %s %s' % (kind, namespace, name))
+            return
+
+    leader_set({'calico-v3-npc-cleanup-needed': None})
+
+
+@when('leadership.is_leader', 'leadership.set.calico-v3-completion-needed',
+      'leadership.set.calico-v3-data-ready', 'calico.binaries.installed',
+      'calico.service.installed', 'calico.npc.deployed')
+@when_not('leadership.set.calico-v3-npc-cleanup-needed')
+def upgrade_v3_complete():
+    status_set('maintenance', 'Completing Calico 3 upgrade')
+    try:
+        calico_upgrade.configure()
+        calico_upgrade.complete()
+        calico_upgrade.cleanup()
+    except Exception:
+        log(traceback.format_exc())
+        message = 'Calico upgrade failed, see debug log'
+        status_set('blocked', message)
+        return
+    leader_set({'calico-v3-completion-needed': None})
+
+
+@when('leadership.set.calico-v3-data-ready')
 @when_not('calico.binaries.installed')
 def install_calico_binaries():
     ''' Unpack the Calico binaries. '''
@@ -118,7 +202,8 @@ def get_bind_address():
 
 
 @when('calico.binaries.installed', 'etcd.available',
-      'calico.etcd-credentials.installed')
+      'calico.etcd-credentials.installed',
+      'leadership.set.calico-v3-data-ready')
 @when_not('calico.service.installed')
 def install_calico_service():
     ''' Install the calico-node systemd service. '''
@@ -141,40 +226,50 @@ def install_calico_service():
         'ip': get_bind_address(),
         'calico_node_image': hookenv.config('calico-node-image'),
     })
-    set_state('calico.service.installed')
-    remove_state('calico.service.started')
-
-
-@when('calico.service.installed')
-@when_not('calico.service.started')
-def start_calico_service():
-    ''' Start the calico systemd service. '''
-    status_set('maintenance', 'Starting calico-node service.')
-    # NB: restart will start the svc whether it is currently started or not
+    check_call(['systemctl', 'daemon-reload'])
     service_restart('calico-node')
     service('enable', 'calico-node')
-    set_state('calico.service.started')
+    set_state('calico.service.installed')
 
 
 @when('calico.binaries.installed', 'etcd.available',
-      'calico.etcd-credentials.installed')
+      'calico.etcd-credentials.installed',
+      'leadership.set.calico-v3-data-ready')
 @when_not('calico.pool.configured')
 def configure_calico_pool(etcd):
     ''' Configure Calico IP pool. '''
     status_set('maintenance', 'Configuring Calico IP pool')
-    env = os.environ.copy()
-    env['ETCD_ENDPOINTS'] = etcd.get_connection_string()
-    env['ETCD_KEY_FILE'] = ETCD_KEY_PATH
-    env['ETCD_CERT_FILE'] = ETCD_CERT_PATH
-    env['ETCD_CA_CERT_FILE'] = ETCD_CA_PATH
+
+    # remove unrecognized pools
+    try:
+        output = calicoctl('get', 'pool', '-o', 'yaml').decode('utf-8')
+    except CalledProcessError:
+        log('Failed to get pools')
+        status_set('waiting', 'Waiting to retry calico pool configuration')
+        return
+
+    pool_data = yaml.safe_load(output)
+    pools = [item['metadata']['name'] for item in pool_data['items']]
+    pools_to_delete = [pool for pool in pools if pool != 'default']
+
+    for pool in pools_to_delete:
+        log('Deleting pool: %s' % pool)
+        try:
+            calicoctl('delete', 'pool', pool, '--skip-not-exists')
+        except CalledProcessError:
+            log('Failed to delete pool: %s' % pool)
+            status_set('waiting', 'Waiting to retry calico pool configuration')
+            return
+
+    # configure the default pool
     config = hookenv.config()
     context = {
         'cidr': config['cidr']
     }
-    render('calico-pool.yaml', '/tmp/calico-pool.yaml', context)
-    cmd = '/opt/calicoctl/calicoctl apply -f /tmp/calico-pool.yaml'
-    exit_code = call(cmd.split(), env=env)
-    if exit_code != 0:
+    render('pool.yaml', '/tmp/calico-pool.yaml', context)
+    try:
+        calicoctl('apply', '-f', '/tmp/calico-pool.yaml')
+    except CalledProcessError:
         status_set('waiting', 'Waiting to retry calico pool configuration')
         return
     set_state('calico.pool.configured')
@@ -186,7 +281,8 @@ def reconfigure_calico_pool():
     remove_state('calico.pool.configured')
 
 
-@when('etcd.available', 'calico.service.started', 'cni.is-worker')
+@when('etcd.available', 'calico.service.installed', 'cni.is-worker',
+      'leadership.set.calico-v3-data-ready')
 @when_not('calico.npc.deployed')
 def deploy_network_policy_controller(etcd, cni):
     ''' Deploy the Calico network policy controller. '''
@@ -198,15 +294,9 @@ def deploy_network_policy_controller(etcd, cni):
         'etcd_ca_path': ETCD_CA_PATH,
         'calico_policy_image': hookenv.config('calico-policy-image')
     }
-    render('calico-policy-controller.yaml', '/tmp/policy-controller.yaml',
-           context)
-    cmd = ['kubectl',
-           '--kubeconfig=/root/.kube/config',
-           'apply',
-           '-f',
-           '/tmp/policy-controller.yaml']
+    render('policy-controller.yaml', '/tmp/policy-controller.yaml', context)
     try:
-        check_call(cmd)
+        kubectl('apply', '-f', '/tmp/policy-controller.yaml')
         set_state('calico.npc.deployed')
     except CalledProcessError as e:
         status_set('waiting', 'Waiting for kubernetes')
@@ -234,6 +324,26 @@ def ensure_etcd_connections():
         # changed, set ourselves up to (re)configure those canal bits.
         clear_flag('canal.cni.configured')
 
-        # Clearing the above flags will change config that the calico-node
-        # service depends on. Set ourselves up to (re)invoke the start handler.
-        clear_flag('calico.service.started')
+
+def calicoctl(*args):
+    cmd = ['/opt/calicoctl/calicoctl'] + list(args)
+    etcd = endpoint_from_flag('etcd.available')
+    env = os.environ.copy()
+    env['ETCD_ENDPOINTS'] = etcd.get_connection_string()
+    env['ETCD_KEY_FILE'] = ETCD_KEY_PATH
+    env['ETCD_CERT_FILE'] = ETCD_CERT_PATH
+    env['ETCD_CA_CERT_FILE'] = ETCD_CA_PATH
+    try:
+        return check_output(cmd, env=env)
+    except CalledProcessError as e:
+        log(e.output)
+        raise
+
+
+def kubectl(*args):
+    cmd = ['kubectl', '--kubeconfig=/root/.kube/config'] + list(args)
+    try:
+        return check_output(cmd)
+    except CalledProcessError as e:
+        log(e.output)
+        raise

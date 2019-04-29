@@ -1,21 +1,23 @@
 {
   "name": "cdk-canal",
+  "cniVersion": "0.3.0",
   "plugins": [
     {
-      "type": "flannel",
-      "delegate": {
-        "type": "calico",
-        "etcd_endpoints": "{{ connection_string }}",
-        "etcd_key_file": "{{ etcd_key_path }}",
-        "etcd_cert_file": "{{ etcd_cert_path }}",
-        "etcd_ca_cert_file": "{{ etcd_ca_path }}",
-        "log_level": "info",
-        "policy": {
-          "type": "k8s"
-        },
-        "kubernetes": {
-          "kubeconfig": "{{ kubeconfig_path }}"
-        }
+      "type": "calico",
+      "etcd_endpoints": "{{ connection_string }}",
+      "etcd_key_file": "{{ etcd_key_path }}",
+      "etcd_cert_file": "{{ etcd_cert_path }}",
+      "etcd_ca_cert_file": "{{ etcd_ca_path }}",
+      "log_level": "info",
+      "ipam": {
+        "type": "host-local",
+        "subnet": "{{ subnet }}"
+      },
+      "policy": {
+        "type": "k8s"
+      },
+      "kubernetes": {
+        "kubeconfig": "{{ kubeconfig_path }}"
       }
     },
     {
