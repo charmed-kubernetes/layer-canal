@@ -8,6 +8,8 @@ set -eux
 # in the charm store, see fetch-charm-store-resources.sh in this repository.
 
 ARCH=${ARCH:-"amd64 arm64"}
+CALICO_COMMIT="68b16354529b80afc6e938b8695c23764abefe55"
+FLANNEL_COMMIT="9dde517adde9b01d4cbb7ceb8004da097677ab31"
 
 # 'git' is required
 command -v git >/dev/null 2>&1 || { echo 'git: command not found'; exit 1; }
@@ -21,17 +23,17 @@ test -d "${canal_temp}" && rm -rf "${canal_temp}"
 mkdir -p "${canal_temp}"
 
 # calico
-git clone --depth 1 --single-branch --branch master \
-  $calico_repo "${canal_temp}/calico"
+git clone $calico_repo "${canal_temp}/calico"
 pushd ${canal_temp}/calico
+git checkout "$CALICO_COMMIT"
 ./build-calico-resource.sh
 mv calico-*.gz ${canal_root}
 popd
 
 # flannel
-git clone --depth 1 --single-branch --branch master \
-  $flannel_repo "${canal_temp}/flannel"
+git clone $flannel_repo "${canal_temp}/flannel"
 pushd ${canal_temp}/flannel
+git checkout "$FLANNEL_COMMIT"
 ARCH="$ARCH" ./build-flannel-resources.sh
 mv flannel-*.gz ${canal_root}
 popd
