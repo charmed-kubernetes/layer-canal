@@ -1,7 +1,10 @@
 import os
-import traceback
 import yaml
+import gzip
+import traceback
+
 from socket import gethostname
+from conctl import getContainerRuntimeCtl
 from subprocess import check_call, check_output, CalledProcessError
 
 import calico_upgrade
@@ -22,6 +25,13 @@ from charmhelpers.core.templating import render
 
 os.environ['PATH'] += os.pathsep + os.path.join(os.sep, 'snap', 'bin')
 
+try:
+    CTL = getContainerRuntimeCtl()
+    set_state('calico.ctl.ready')
+except RuntimeError:
+    log(traceback.format_exc())
+    remove_state('calico.ctl.ready')
+
 # This needs to match up with CALICOCTL_PATH in canal.py
 CALICOCTL_PATH = '/opt/calicoctl'
 ETCD_KEY_PATH = os.path.join(CALICOCTL_PATH, 'etcd-key')
@@ -35,6 +45,7 @@ def upgrade_charm():
     remove_state('calico.binaries.installed')
     remove_state('calico.service.installed')
     remove_state('calico.pool.configured')
+    remove_state('calico.image.pulled')
     remove_state('calico.npc.deployed')
     if is_leader() and not leader_get('calico-v3-data-ready'):
         leader_set({
@@ -42,6 +53,32 @@ def upgrade_charm():
             'calico-v3-npc-cleanup-needed': True,
             'calico-v3-completion-needed': True
         })
+
+
+@when_not('calico.image.pulled')
+@when('calico.ctl.ready')
+def pull_calico_node_image():
+    image = resource_get('calico-node-image')
+
+    if not image or os.path.getsize(image) == 0:
+        status_set('maintenance', 'Pulling calico-node image')
+        image = hookenv.config('calico-node-image')
+        CTL.pull(image)
+    else:
+        status_set('maintenance', 'Loading calico-node image')
+        unzipped = '/tmp/calico-node-image.tar'
+        with gzip.open(image, 'rb') as f_in:
+            with open(unzipped, 'wb') as f_out:
+                f_out.write(f_in.read())
+        CTL.load(unzipped)
+
+    set_state('calico.image.pulled')
+
+
+@when_any('config.changed.calico-node-image')
+def repull_calico_node_image():
+    remove_state('calico.image.pulled')
+    remove_state('calico.service.installed')
 
 
 @when('leadership.is_leader', 'leadership.set.calico-v3-data-migration-needed',
