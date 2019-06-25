@@ -39,3 +39,5 @@ mv flannel-*.gz ${canal_root}
 popd
 
 test -d "${canal_temp}" && rm -rf "${canal_temp}"
+
+touch calico-node-image.tar.gz
