@@ -21,7 +21,7 @@ ExecStart=/usr/local/sbin/charm-env --charm canal conctl run \
   --env AS= \
   --env CALICO_LIBNETWORK_ENABLED=true \
   --env IP6= \
-  --env CALICO_NETWORKING_BACKEND=bird \
+  --env CALICO_NETWORKING_BACKEND=none \
   --env FELIX_DEFAULTENDPOINTTOHOSTACTION=ACCEPT \
   --mount /lib/modules:/lib/modules \
   --mount /var/run/calico:/var/run/calico \
@@ -32,7 +32,7 @@ ExecStart=/usr/local/sbin/charm-env --charm canal conctl run \
   {{ calico_node_image }}
 ExecStop=-/usr/local/sbin/charm-env --charm canal conctl delete calico-node
 Restart=always
-RestartSec=10e
+RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
