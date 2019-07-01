@@ -250,6 +250,7 @@ def install_calico_service():
     etcd = endpoint_from_flag('etcd.available')
     etcd_connections = etcd.get_connection_string()
     data_changed('calico_etcd_connections', etcd_connections)
+    data_changed('calico_etcd_cert', etcd.get_client_credentials())
 
     service_path = os.path.join(os.sep, 'lib', 'systemd', 'system',
                                 'calico-node.service')
@@ -351,7 +352,11 @@ def ensure_etcd_connections():
     relevant flags to make sure accurate config is regenerated.
     '''
     etcd = endpoint_from_flag('etcd.available')
-    if data_changed('calico_etcd_connections', etcd.get_connection_string()):
+    connection_changed = data_changed('calico_etcd_connections',
+                                      etcd.get_connection_string())
+    cert_changed = data_changed('calico_etcd_cert',
+                                etcd.get_client_credentials())
+    if connection_changed or cert_changed:
         # NB: dont bother guarding clear_flag with is_flag_set; it's safe to
         # clear an unset flag.
         clear_flag('calico.service.installed')
