@@ -357,6 +357,9 @@ def ensure_etcd_connections():
     cert_changed = data_changed('calico_etcd_cert',
                                 etcd.get_client_credentials())
     if connection_changed or cert_changed:
+        etcd.save_client_credentials(ETCD_KEY_PATH,
+                                     ETCD_CERT_PATH,
+                                     ETCD_CA_PATH)
         # NB: dont bother guarding clear_flag with is_flag_set; it's safe to
         # clear an unset flag.
         clear_flag('calico.service.installed')
