@@ -257,11 +257,6 @@ def ensure_etcd_connections():
         # Clearing the above flag will change config that the flannel
         # service depends on. Set ourselves up to (re)invoke the start handler.
         clear_flag('flannel.service.started')
-        clear_flag('flannel.service.installed')
-
-        # Clearing the above flag will change config that the flannel
-        # service depends on. Set ourselves up to (re)invoke the start handler.
-        clear_flag('flannel.service.started')
 
 
 @hook('upgrade-charm')
