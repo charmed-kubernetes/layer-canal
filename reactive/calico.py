@@ -330,7 +330,8 @@ def deploy_network_policy_controller(etcd, cni):
         'etcd_key_path': ETCD_KEY_PATH,
         'etcd_cert_path': ETCD_CERT_PATH,
         'etcd_ca_path': ETCD_CA_PATH,
-        'calico_policy_image': hookenv.config('calico-policy-image')
+        'calico_policy_image': hookenv.config('calico-policy-image'),
+        'etcd_cert_last_modified': os.path.getmtime(ETCD_CERT_PATH)
     }
     render('policy-controller.yaml', '/tmp/policy-controller.yaml', context)
     try:
