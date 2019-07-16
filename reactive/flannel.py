@@ -126,6 +126,7 @@ def install_flannel_service():
     etcd = endpoint_from_flag('etcd.tls.available')
     etcd_connections = etcd.get_connection_string()
     data_changed('flannel_etcd_connections', etcd_connections)
+    data_changed('flannel_etcd_cert', etcd.get_client_credentials())
 
     iface = config('iface') or get_bind_address_interface()
     context = {'iface': iface,
@@ -243,7 +244,14 @@ def ensure_etcd_connections():
     relevant flags to make sure accurate config is regenerated.
     '''
     etcd = endpoint_from_flag('etcd.available')
-    if data_changed('flannel_etcd_connections', etcd.get_connection_string()):
+    connection_changed = data_changed('flannel_etcd_connections',
+                                      etcd.get_connection_string())
+    cert_changed = data_changed('flannel_etcd_cert',
+                                etcd.get_client_credentials())
+    if connection_changed or cert_changed:
+        etcd.save_client_credentials(ETCD_KEY_PATH,
+                                     ETCD_CERT_PATH,
+                                     ETCD_CA_PATH)
         clear_flag('flannel.service.installed')
 
         # Clearing the above flag will change config that the flannel
