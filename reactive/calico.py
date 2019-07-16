@@ -250,6 +250,7 @@ def install_calico_service():
     etcd = endpoint_from_flag('etcd.available')
     etcd_connections = etcd.get_connection_string()
     data_changed('calico_etcd_connections', etcd_connections)
+    data_changed('calico_etcd_cert', etcd.get_client_credentials())
 
     service_path = os.path.join(os.sep, 'lib', 'systemd', 'system',
                                 'calico-node.service')
@@ -329,7 +330,8 @@ def deploy_network_policy_controller(etcd, cni):
         'etcd_key_path': ETCD_KEY_PATH,
         'etcd_cert_path': ETCD_CERT_PATH,
         'etcd_ca_path': ETCD_CA_PATH,
-        'calico_policy_image': hookenv.config('calico-policy-image')
+        'calico_policy_image': hookenv.config('calico-policy-image'),
+        'etcd_cert_last_modified': os.path.getmtime(ETCD_CERT_PATH)
     }
     render('policy-controller.yaml', '/tmp/policy-controller.yaml', context)
     try:
@@ -351,7 +353,14 @@ def ensure_etcd_connections():
     relevant flags to make sure accurate config is regenerated.
     '''
     etcd = endpoint_from_flag('etcd.available')
-    if data_changed('calico_etcd_connections', etcd.get_connection_string()):
+    connection_changed = data_changed('calico_etcd_connections',
+                                      etcd.get_connection_string())
+    cert_changed = data_changed('calico_etcd_cert',
+                                etcd.get_client_credentials())
+    if connection_changed or cert_changed:
+        etcd.save_client_credentials(ETCD_KEY_PATH,
+                                     ETCD_CERT_PATH,
+                                     ETCD_CA_PATH)
         # NB: dont bother guarding clear_flag with is_flag_set; it's safe to
         # clear an unset flag.
         clear_flag('calico.service.installed')
