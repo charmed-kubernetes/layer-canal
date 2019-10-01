@@ -319,12 +319,13 @@ def reconfigure_calico_pool():
     remove_state('calico.pool.configured')
 
 
-@when('etcd.available', 'calico.service.installed', 'cni.is-worker',
+@when('etcd.available', 'calico.service.installed', 'leadership.is_leader',
       'leadership.set.calico-v3-data-ready')
 @when_not('calico.npc.deployed')
-def deploy_network_policy_controller(etcd, cni):
+def deploy_network_policy_controller():
     ''' Deploy the Calico network policy controller. '''
     status_set('maintenance', 'Deploying network policy controller.')
+    etcd = endpoint_from_flag('etcd.available')
     context = {
         'connection_string': etcd.get_connection_string(),
         'etcd_key_path': ETCD_KEY_PATH,
