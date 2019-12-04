@@ -73,7 +73,7 @@ def set_canal_version():
     flannel_version = output.split('v')[-1].strip()
 
     # Please refer to layer-canal/versioning.md before changing this.
-    calico_version = '3.6.1'
+    calico_version = '3.10.1'
 
     version = '%s/%s' % (flannel_version, calico_version)
     application_version_set(version)

@@ -5,7 +5,7 @@ import traceback
 
 from socket import gethostname
 from conctl import getContainerRuntimeCtl
-from subprocess import check_call, check_output, CalledProcessError
+from subprocess import check_call, check_output, CalledProcessError, STDOUT
 
 import calico_upgrade
 from charms.layer.canal import arch
@@ -381,7 +381,7 @@ def calicoctl(*args):
     env['ETCD_CERT_FILE'] = ETCD_CERT_PATH
     env['ETCD_CA_CERT_FILE'] = ETCD_CA_PATH
     try:
-        return check_output(cmd, env=env)
+        return check_output(cmd, env=env, stderr=STDOUT)
     except CalledProcessError as e:
         log(e.output)
         raise
