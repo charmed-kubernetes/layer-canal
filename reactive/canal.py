@@ -56,7 +56,7 @@ def configure_cni():
         'subnet': subnet
     }
     render('10-canal.conflist', '/etc/cni/net.d/10-canal.conflist', context)
-    cni.set_config(cidr=config('cidr'))
+    cni.set_config(cidr=config('cidr'), cni_conf_file='10-canal.conflist')
     set_state('canal.cni.configured')
 
 
