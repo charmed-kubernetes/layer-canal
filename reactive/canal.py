@@ -31,6 +31,11 @@ def upgrade_charm():
         hookenv.log(e)
 
 
+@hook('pre-series-upgrade')
+def pre_series_upgrade():
+    status_set('blocked', 'Series upgrade in progress')
+
+
 @when('etcd.available', 'cni.configured', 'flannel.service.started',
       'calico.service.installed', 'calico.pool.configured')
 @when_not('canal.cni.configured')
