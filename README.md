@@ -10,56 +10,7 @@ This charm will deploy flannel and calico as background services, and configure
 CNI to use them, on any principal charm that implements the [kubernetes-cni][]
 interface.
 
+This charm is a component of Charmed Kubernetes. For full information,
+please visit the [official Charmed Kubernetes docs](https://www.ubuntu.com/kubernetes/docs/charm-canal).
+
 [kubernetes-cni]: https://github.com/juju-solutions/interface-kubernetes-cni
-
-## Usage
-
-The canal charm is a [subordinate][]. This charm will require a principal charm
-that implements the `kubernetes-cni` interface in order to properly deploy.
-
-[subordinate]: https://docs.jujucharms.com/2.4/en/authors-subordinate-applications
-```
-juju deploy cs:~containers/canal
-juju deploy cs:~containers/etcd
-juju deploy cs:~containers/kubernetes-master
-juju deploy cs:~containers/kubernetes-worker
-juju add-relation canal etcd
-juju add-relation canal kubernetes-master
-juju add-relation canal kubernetes-worker
-```
-
-## Configuration
-
-**iface** The interface to configure the flannel SDN binding. If this value is
-empty string or undefined the code will attempt to find the default network
-adapter similar to the following command:  
-```bash
-route | grep default | head -n 1 | awk {'print $8'}
-```
-
-**cidr** The network range to configure the flannel SDN to declare when
-establishing networking setup with etcd. Ensure this network range is not active
-on the vlan you're deploying to, as it will cause collisions and odd behavior
-if care is not taken when selecting a good CIDR range to assign to flannel.
-
-**nagios_context** A string that will be prepended to instance name to set the
-host name in nagios.If you're running multiple environments with the same
-services in them this allows you to differentiate between them. Used by the
-nrpe subordinate charm.
-
-**nagios_servicegroups** The comma-separated list of servicegroups that the
-generated Nagios checks will belong to.
-
-## Known Limitations
-
-This subordinate does not support being co-located with other deployments of
-the canal subordinate (to gain 2 vlans on a single application). If you
-require this support please file a bug.
-
-This subordinate also leverages juju-resources, so it is currently only
-available on juju 2.0+ controllers.
-
-
-## Further information
-
-- [Canal Project Page](https://github.com/projectcalico/canal)
