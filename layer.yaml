@@ -5,4 +5,5 @@ includes:
    - 'layer:basic'
    - 'layer:nagios'
    - 'layer:leadership'
+   - 'layer:status'
 repo: https://github.com/juju-solutions/layer-canal.git

@@ -7,9 +7,11 @@ from charms.reactive import set_state, remove_state, when, when_not, hook
 from charms.reactive import endpoint_from_flag
 from charms.templating.jinja2 import render
 from charmhelpers.core import hookenv
-from charmhelpers.core.hookenv import status_set, config
+from charmhelpers.core.hookenv import config
 from charmhelpers.core.hookenv import application_version_set
 from charmhelpers.core.host import service_running
+
+from charms.layer import status
 
 
 # This needs to match up with CALICOCTL_PATH in calico.py
@@ -33,7 +35,7 @@ def upgrade_charm():
 
 @hook('pre-series-upgrade')
 def pre_series_upgrade():
-    status_set('blocked', 'Series upgrade in progress')
+    status.blocked('Series upgrade in progress')
 
 
 @when('etcd.available', 'cni.configured', 'flannel.service.started',
@@ -41,12 +43,12 @@ def pre_series_upgrade():
 @when_not('canal.cni.configured')
 def configure_cni():
     ''' Configure Calico CNI. '''
-    status_set('maintenance', 'Configuring Calico CNI')
+    status.maintenance('Configuring Calico CNI')
     try:
         subnet = get_flannel_subnet()
     except FlannelSubnetNotFound:
         hookenv.log(traceback.format_exc())
-        status_set('waiting', 'Waiting for Flannel')
+        status.waiting('Waiting for Flannel')
         return
     os.makedirs('/etc/cni/net.d', exist_ok=True)
     cni = endpoint_from_flag('cni.configured')
@@ -102,12 +104,12 @@ def ready():
     failing_services = get_failing_services()
     if len(failing_services) > 0:
         msg = 'Waiting for service: {}'.format(', '.join(failing_services))
-        status_set('waiting', msg)
+        status.waiting(msg)
     else:
         try:
-            status_set('active', 'Flannel subnet ' + get_flannel_subnet())
+            status.active('Flannel subnet ' + get_flannel_subnet())
         except FlannelSubnetNotFound:
-            status_set('waiting', 'Waiting for Flannel')
+            status.waiting('Waiting for Flannel')
 
 
 @hook('stop')
