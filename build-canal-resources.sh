@@ -8,7 +8,7 @@ set -eux
 # in the charm store, see fetch-charm-store-resources.sh in this repository.
 
 ARCH=${ARCH:-"amd64 arm64"}
-CALICO_COMMIT="e114b47f5cb6a3e06ef70be590c01f11b0b8df74"
+CALICO_COMMIT="5dab860987023b9b2570870b0f37d958bb7fd9b2"
 FLANNEL_COMMIT="9dde517adde9b01d4cbb7ceb8004da097677ab31"
 
 # 'git' is required
