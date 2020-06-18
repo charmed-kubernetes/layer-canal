@@ -16,7 +16,7 @@ from charms.reactive.flags import clear_flag
 from charms.reactive.helpers import data_changed
 from charmhelpers.core import hookenv
 from charmhelpers.core.hookenv import log, status_set, resource_get, \
-    unit_private_ip, is_leader
+    unit_private_ip, is_leader, env_proxy_settings
 from charmhelpers.core.host import service, service_restart
 from charmhelpers.core.templating import render
 
@@ -38,6 +38,22 @@ ETCD_KEY_PATH = os.path.join(CALICOCTL_PATH, 'etcd-key')
 ETCD_CERT_PATH = os.path.join(CALICOCTL_PATH, 'etcd-cert')
 ETCD_CA_PATH = os.path.join(CALICOCTL_PATH, 'etcd-ca')
 CALICO_UPGRADE_DIR = '/opt/calico-upgrade'
+
+
+def set_http_proxy():
+    """
+    Check if we have any values for
+    juju_http*_proxy and apply them.
+    """
+    juju_environment = env_proxy_settings()
+    if juju_environment and not juju_environment.get('disable-juju-proxy'):
+        upper = ['HTTP_PROXY', 'HTTPS_PROXY', 'NO_PROXY']
+        lower = list(map(str.lower, upper))
+        keys = upper + lower
+        for key in keys:
+            from_juju = juju_environment.get(key, None)
+            if from_juju:
+                os.environ[key] = from_juju
 
 
 @hook('upgrade-charm')
@@ -63,6 +79,7 @@ def pull_calico_node_image():
     if not image or os.path.getsize(image) == 0:
         status_set('maintenance', 'Pulling calico-node image')
         image = hookenv.config('calico-node-image')
+        set_http_proxy()
         CTL.pull(image)
     else:
         status_set('maintenance', 'Loading calico-node image')
