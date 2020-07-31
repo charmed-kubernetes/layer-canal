@@ -23,6 +23,7 @@ ExecStart=/usr/local/sbin/charm-env --charm canal conctl run \
   --env IP6= \
   --env CALICO_NETWORKING_BACKEND=none \
   --env FELIX_DEFAULTENDPOINTTOHOSTACTION=ACCEPT \
+  --env FELIX_IGNORELOOSERPF={{ ignore_loose_rpf | string | lower }} \
   --mount /lib/modules:/lib/modules \
   --mount /var/run/calico:/var/run/calico \
   --mount /var/log/calico:/var/log/calico \

@@ -282,12 +282,16 @@ def install_calico_service():
         # specify IP so calico doesn't grab a silly one from, say, lxdbr0
         'ip': get_bind_address(),
         'calico_node_image': hookenv.config('calico-node-image'),
+        'ignore_loose_rpf': hookenv.config('ignore-loose-rpf'),
     })
     check_call(['systemctl', 'daemon-reload'])
     service_restart('calico-node')
     service('enable', 'calico-node')
     set_state('calico.service.installed')
 
+@when('config.changed.ignore-loose-rpf')
+def ignore_loose_rpf_changed():
+    remove_state('calico.service.installed')
 
 @when('calico.binaries.installed', 'etcd.available',
       'calico.etcd-credentials.installed',
