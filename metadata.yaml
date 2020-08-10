@@ -13,9 +13,9 @@ description: |
   with the rich superset of Calico and flannel overlay and non-overlay network
   connectivity options.
 series:
-  - xenial
-  - bionic
   - focal
+  - bionic
+  - xenial
 subordinate: true
 tags:
   - networking
