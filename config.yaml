@@ -21,3 +21,9 @@ options:
     description: |
       The interface to bind flannel overlay networking. The default value is
       the interface bound to the cni endpoint.
+  ignore-loose-rpf:
+    type: boolean
+    default: false
+    description: |
+      Enable or disable IgnoreLooseRPF for Calico Felix.  This is only used
+      when rp_filter is set to a value of 2.

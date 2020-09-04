@@ -13,9 +13,11 @@ from charms.reactive.helpers import data_changed
 from charms.templating.jinja2 import render
 from charmhelpers.core.host import service_start, service_stop, service_restart
 from charmhelpers.core.host import service_running, service
-from charmhelpers.core.hookenv import log, status_set, resource_get, config
+from charmhelpers.core.hookenv import log, resource_get, config
 from charmhelpers.core.hookenv import network_get
 from charmhelpers.contrib.charmsupport import nrpe
+
+from charms.layer import status
 
 
 ETCD_PATH = '/etc/ssl/flannel'
@@ -39,20 +41,20 @@ def install_flannel_binaries():
     except Exception:
         message = 'Error fetching the flannel resource.'
         log(message)
-        status_set('blocked', message)
+        status.blocked(message)
         return
     if not archive:
         message = 'Missing flannel resource.'
         log(message)
-        status_set('blocked', message)
+        status.blocked(message)
         return
     filesize = os.stat(archive).st_size
     if filesize < 1000000:
         message = 'Incomplete flannel resource'
         log(message)
-        status_set('blocked', message)
+        status.blocked(message)
         return
-    status_set('maintenance', 'Unpacking flannel resource.')
+    status.maintenance('Unpacking flannel resource.')
     charm_dir = os.getenv('CHARM_DIR')
     unpack_path = os.path.join(charm_dir, 'files', 'flannel')
     os.makedirs(unpack_path, exist_ok=True)
@@ -120,7 +122,7 @@ def get_bind_address_interface():
 @when_not('flannel.service.installed')
 def install_flannel_service():
     ''' Install the flannel service. '''
-    status_set('maintenance', 'Installing flannel service.')
+    status.maintenance('Installing flannel service.')
 
     # keep track of our etcd connections so we can detect when it changes later
     etcd = endpoint_from_flag('etcd.tls.available')
@@ -149,12 +151,12 @@ def reconfigure_flannel_service():
 @when_not('flannel.network.configured')
 def invoke_configure_network(etcd):
     ''' invoke network configuration and adjust states '''
-    status_set('maintenance', 'Negotiating flannel network subnet.')
+    status.maintenance('Negotiating flannel network subnet.')
     if configure_network(etcd):
         set_state('flannel.network.configured')
         remove_state('flannel.service.started')
     else:
-        status_set('waiting', 'Waiting on etcd.')
+        status.waiting('Waiting on etcd.')
 
 
 @retry(times=3, delay_secs=20)
@@ -197,7 +199,7 @@ def reconfigure_network():
 @when_not('flannel.service.started')
 def start_flannel_service():
     ''' Start the flannel service. '''
-    status_set('maintenance', 'Starting flannel service.')
+    status.maintenance('Starting flannel service.')
     if service_running('flannel'):
         service_restart('flannel')
     else:
@@ -232,7 +234,7 @@ def update_nrpe_config(unused=None):
 @when_not('etcd.connected')
 def halt_execution():
     ''' send a clear message to the user that we are waiting on etcd '''
-    status_set('blocked', 'Waiting for etcd relation.')
+    status.blocked('Waiting for etcd relation.')
 
 
 @when('etcd.available', 'flannel.service.installed')
