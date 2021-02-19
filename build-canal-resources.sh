@@ -9,7 +9,7 @@ set -eux
 
 ARCH=${ARCH:-"amd64 arm64"}
 CALICO_COMMIT="5dab860987023b9b2570870b0f37d958bb7fd9b2"
-FLANNEL_COMMIT="4fb771339a8cc2cd48f33c1f1702203747debe30"
+FLANNEL_COMMIT="78040e24f5faf229e03571c13e156ed8e4b6a4bc"
 
 # 'git' is required
 command -v git >/dev/null 2>&1 || { echo 'git: command not found'; exit 1; }
