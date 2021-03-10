@@ -291,9 +291,11 @@ def install_calico_service():
     service('enable', 'calico-node')
     set_state('calico.service.installed')
 
+
 @when('config.changed.ignore-loose-rpf')
 def ignore_loose_rpf_changed():
     remove_state('calico.service.installed')
+
 
 @when('calico.binaries.installed', 'etcd.available',
       'calico.etcd-credentials.installed',

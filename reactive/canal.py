@@ -4,12 +4,14 @@ from shlex import split
 from subprocess import check_output, STDOUT
 
 from charms.reactive import set_state, remove_state, when, when_not, hook
+from charms.reactive import when_any
 from charms.reactive import endpoint_from_flag
 from charms.templating.jinja2 import render
 from charmhelpers.core import hookenv
 from charmhelpers.core.hookenv import config
 from charmhelpers.core.hookenv import application_version_set
 from charmhelpers.core.host import service_running
+from charmhelpers.contrib.charmsupport import nrpe
 
 from charms.layer import status
 
@@ -115,6 +117,30 @@ def ready():
 @hook('stop')
 def stop():
     set_state('canal.stopping')
+
+
+@when('nrpe-external-master.available')
+@when_not('nrpe-external-master.initial-config')
+def initial_nrpe_config(nagios=None):
+    set_state('nrpe-external-master.initial-config')
+    update_nrpe_config(nagios)
+
+
+@when_any('flannel.service.started', 'calico.service.installed')
+@when('nrpe-external-master.available')
+@when_any('config.changed.nagios_context',
+          'config.changed.nagios_servicegroups')
+def update_nrpe_config(unused=None):
+    # List of systemd services that will be checked
+    services = ('flannel', 'calico-node')
+
+    # The current nrpe-external-master interface doesn't handle a lot of logic,
+    # use the charm-helpers code for now.
+    hostname = nrpe.get_nagios_hostname()
+    current_unit = nrpe.get_nagios_unit_name()
+    nrpe_setup = nrpe.NRPE(hostname=hostname, primary=False)
+    nrpe.add_init_service_checks(nrpe_setup, services, current_unit)
+    nrpe_setup.write()
 
 
 def get_flannel_subnet():

@@ -6,7 +6,6 @@ from subprocess import check_output, check_call, CalledProcessError
 from charms.layer.canal import arch, retry
 
 from charms.reactive import set_state, remove_state, when, when_not, hook
-from charms.reactive import when_any
 from charms.reactive import endpoint_from_flag
 from charms.reactive.flags import clear_flag
 from charms.reactive.helpers import data_changed
@@ -15,7 +14,6 @@ from charmhelpers.core.host import service_start, service_stop, service_restart
 from charmhelpers.core.host import service_running, service
 from charmhelpers.core.hookenv import log, resource_get, config
 from charmhelpers.core.hookenv import network_get
-from charmhelpers.contrib.charmsupport import nrpe
 
 from charms.layer import status
 
@@ -205,30 +203,6 @@ def start_flannel_service():
     else:
         service_start('flannel')
     set_state('flannel.service.started')
-
-
-@when('nrpe-external-master.available')
-@when_not('nrpe-external-master.initial-config')
-def initial_nrpe_config(nagios=None):
-    set_state('nrpe-external-master.initial-config')
-    update_nrpe_config(nagios)
-
-
-@when('flannel.service.started')
-@when('nrpe-external-master.available')
-@when_any('config.changed.nagios_context',
-          'config.changed.nagios_servicegroups')
-def update_nrpe_config(unused=None):
-    # List of systemd services that will be checked
-    services = ('flannel',)
-
-    # The current nrpe-external-master interface doesn't handle a lot of logic,
-    # use the charm-helpers code for now.
-    hostname = nrpe.get_nagios_hostname()
-    current_unit = nrpe.get_nagios_unit_name()
-    nrpe_setup = nrpe.NRPE(hostname=hostname, primary=False)
-    nrpe.add_init_service_checks(nrpe_setup, services, current_unit)
-    nrpe_setup.write()
 
 
 @when_not('etcd.connected')
