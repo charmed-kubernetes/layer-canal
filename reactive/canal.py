@@ -4,12 +4,14 @@ from shlex import split
 from subprocess import check_output, STDOUT
 
 from charms.reactive import set_state, remove_state, when, when_not, hook
+from charms.reactive import when_any
 from charms.reactive import endpoint_from_flag
 from charms.templating.jinja2 import render
 from charmhelpers.core import hookenv
 from charmhelpers.core.hookenv import config
 from charmhelpers.core.hookenv import application_version_set
 from charmhelpers.core.host import service_running
+from charmhelpers.contrib.charmsupport import nrpe
 
 from charms.layer import status
 
@@ -19,6 +21,8 @@ CALICOCTL_PATH = '/opt/calicoctl'
 ETCD_KEY_PATH = os.path.join(CALICOCTL_PATH, 'etcd-key')
 ETCD_CERT_PATH = os.path.join(CALICOCTL_PATH, 'etcd-cert')
 ETCD_CA_PATH = os.path.join(CALICOCTL_PATH, 'etcd-ca')
+
+MONITORED_SERVICES = ['flannel', 'calico-node']
 
 
 @hook('upgrade-charm')
@@ -115,6 +119,46 @@ def ready():
 @hook('stop')
 def stop():
     set_state('canal.stopping')
+
+
+@when('flannel.service.started',
+      'calico.service.installed',
+      'nrpe-external-master.available')
+@when_not('nrpe-external-master.initial-config')
+def configure_nrpe(unused=None):
+    hookenv.log('Configuring nrpe checks for services: '
+                '{}'.format(MONITORED_SERVICES))
+    # The current nrpe-external-master interface doesn't handle a lot of logic,
+    # use the charm-helpers code for now.
+    hostname = nrpe.get_nagios_hostname()
+    current_unit = nrpe.get_nagios_unit_name()
+    nrpe_setup = nrpe.NRPE(hostname=hostname, primary=False)
+    nrpe.add_init_service_checks(nrpe_setup, MONITORED_SERVICES, current_unit)
+    nrpe_setup.write()
+
+    set_state('nrpe-external-master.initial-config')
+
+
+@when_any('config.changed.nagios_context',
+          'config.changed.nagios_servicegroups')
+@when('nrpe-external-master.initial-config')
+def update_nagios():
+    configure_nrpe()
+
+
+@when_not('nrpe-external-master.available')
+@when('nrpe-external-master.initial-config')
+def remove_nrpe_config():
+    hookenv.log('Removing nrpe checks for services: '
+                '{}'.format(MONITORED_SERVICES))
+    hostname = nrpe.get_nagios_hostname()
+    nrpe_setup = nrpe.NRPE(hostname=hostname, primary=False)
+
+    for check in MONITORED_SERVICES:
+        nrpe_setup.remove_check(shortname=check)
+    nrpe_setup.write()
+
+    remove_state('nrpe-external-master.initial-config')
 
 
 def get_flannel_subnet():
