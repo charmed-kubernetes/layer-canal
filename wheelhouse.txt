@@ -1,2 +1,4 @@
 charms.templating.jinja2>=1.0.0,<2.0.0
 conctl-py35==0.1.2
+# pin click to avoid bringing in incompatible setuptools>=42
+click<8.0
