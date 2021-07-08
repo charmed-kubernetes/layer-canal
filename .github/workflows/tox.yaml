@@ -43,5 +43,12 @@ jobs:
           provider: lxd
       - name: Install Docker
         run: sudo snap install docker
+      - name: Install juju-crashdump
+        run: sudo snap install juju-crashdump --classic
       - name: Run test
         run: tox -e integration
+      - name: Upload crashdump
+        uses: actions/upload-artifact@v2
+        with:
+          name: crashdump
+          path: juju-crashdump-*.tar.xz
