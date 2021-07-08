@@ -38,13 +38,8 @@ async def test_build_and_deploy(ops_test):
         fail_msg="Failed to deploy bundle",
     )
     try:
-        await ops_test.model.wait_for_idle(wait_for_active=True, timeout=60 * 60)
+        await ops_test.model.wait_for_idle(wait_for_active=True, timeout=30 * 60)
     finally:
-        unit = ops_test.model.applications["kubernetes-master"].units[0]
-        response = await unit.run(
-            "kubectl --kubeconfig /root/.kube/config get all -A", timeout=30
-        )
-        log.info(response["Stdout"] or response["Stderr"])
         await ops_test.run(
             "juju-crashdump",
             "-s",
@@ -55,3 +50,8 @@ async def test_build_and_deploy(ops_test):
             "-m",
             ops_test.model_full_name,
         )
+        unit = ops_test.model.applications["kubernetes-master"].units[0]
+        response = await unit.run(
+            "kubectl --kubeconfig /root/.kube/config get all -A", timeout=30
+        )
+        log.info(response.results["Stdout"] or response.results["Stderr"])
