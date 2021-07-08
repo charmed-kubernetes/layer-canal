@@ -31,8 +31,8 @@ jobs:
     - name: Validate Wheelhouse
       run: tox -vve validate-wheelhouse
   integration-test:
-    name: Integration test with VMWare
-    runs-on: self-hosted
+    name: Integration test
+    runs-on: ubuntu-latest
     timeout-minutes: 360
     steps:
       - name: Check out code
@@ -40,10 +40,7 @@ jobs:
       - name: Setup operator environment
         uses: charmed-kubernetes/actions-operator@master
         with:
-          provider: vsphere
-          credentials-yaml: ${{ secrets.CREDENTIALS_YAML }}
-          clouds-yaml: ${{ secrets.CLOUDS_YAML }}
-          bootstrap-options: "--model-default datastore=vsanDatastore --model-default primary-network=VLAN_2764"
+          provider: lxd
       - name: Install Docker
         run: |
           sudo apt install -qyf docker.io
