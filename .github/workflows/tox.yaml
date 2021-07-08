@@ -42,8 +42,6 @@ jobs:
         with:
           provider: lxd
       - name: Install Docker
-        run: |
-          sudo apt install -qyf docker.io
-          sudo chmod 0666 /var/run/docker.sock
+        run: sudo snap install docker
       - name: Run test
         run: tox -e integration
