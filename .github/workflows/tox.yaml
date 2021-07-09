@@ -48,6 +48,7 @@ jobs:
       - name: Run test
         run: tox -e integration
       - name: Upload crashdump
+        if: ${{ failure() }}
         uses: actions/upload-artifact@v2
         with:
           name: crashdump
