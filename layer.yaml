@@ -6,4 +6,5 @@ includes:
    - 'layer:nagios'
    - 'layer:leadership'
    - 'layer:status'
+   - 'layer:kubernetes-common'
 repo: https://github.com/juju-solutions/layer-canal.git
