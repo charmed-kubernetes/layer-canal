@@ -42,7 +42,7 @@ def pre_series_upgrade():
     status.blocked('Series upgrade in progress')
 
 
-@when('etcd.available', 'cni.configured', 'flannel.service.started',
+@when('etcd.available', 'cni.connected', 'flannel.service.started',
       'calico.service.installed', 'calico.pool.configured')
 @when_not('canal.cni.configured')
 def configure_cni():
@@ -55,7 +55,7 @@ def configure_cni():
         status.waiting('Waiting for Flannel')
         return
     os.makedirs('/etc/cni/net.d', exist_ok=True)
-    cni = endpoint_from_flag('cni.configured')
+    cni = endpoint_from_flag('cni.connected')
     etcd = endpoint_from_flag('etcd.available')
     cni_config = cni.get_config()
     context = {
