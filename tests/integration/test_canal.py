@@ -1,6 +1,7 @@
 import logging
 import pytest
 from pathlib import Path
+import shlex
 
 log = logging.getLogger(__name__)
 
@@ -40,17 +41,11 @@ async def test_build_and_deploy(ops_test):
     try:
         await ops_test.model.wait_for_idle(wait_for_active=True, timeout=30 * 60)
     finally:
-        await ops_test.run(
-            "juju-crashdump",
-            "-s",
-            "-a",
-            "debug-layer",
-            "-a",
-            "config",
-            "-m",
-            ops_test.model_full_name,
-        )
-        unit = ops_test.model.applications["kubernetes-master"].units[0]
+        model = ops_test.model_full_name
+        cmd = f"juju-crashdump -s -a debug-layer -a config -m {model}"
+        await ops_test.run(*shlex.split(cmd))
+        k8s_cp = "kubernetes-control-plane"
+        unit = ops_test.model.applications[k8s_cp].units[0]
         response = await unit.run(
             "kubectl --kubeconfig /root/.kube/config get all -A", timeout=30
         )
