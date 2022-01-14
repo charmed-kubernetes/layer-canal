@@ -41,8 +41,6 @@ jobs:
         uses: charmed-kubernetes/actions-operator@main
         with:
           provider: lxd
-      - name: Install Docker
-        run: sudo snap install docker
       - name: Install juju-crashdump
         run: sudo snap install juju-crashdump --classic
       - name: Run test
