@@ -1,34 +1,35 @@
-import asyncio
-from itertools import chain
 import logging
 from pathlib import Path
 import pytest
 import shlex
-from urllib.request import urlretrieve
 
 log = logging.getLogger(__name__)
-CNI_ARCH_URL = "https://api.jujucharms.com/charmstore/v5/~containers/canal-{charm}/resource/{resource}"  # noqa
 
 
-async def _retrieve_url(charm, resource, target_file):
-    url = CNI_ARCH_URL.format(
-        charm=charm,
-        resource=resource
-    )
-    urlretrieve(url, target_file)
+def ensure_arch_names(current_resources):
+    for resource in current_resources:
+        if any(arch in resource.name for arch in ['s390x', 'arm64', 'amd64']):
+            continue
+        if resource.name == 'calico-node-image.tar.gz':
+            # doesn't have an associated arch
+            continue
+        # without an arch, assume 'amd64'
+        head, tail = resource.name.split('.', 1)
+        arched_name = "{}-amd64.{}".format(head, tail)
+        (resource.parent / arched_name).symlink_to(resource)
 
 
 @pytest.fixture()
 async def setup_resources(ops_test):
     """Provides the flannel resources needed to deploy the charm."""
-    resource_path = Path.cwd()
+    script_path = resource_path = Path.cwd()
     current_resources = list(resource_path.glob("*.tar.gz"))
     tmpdir = ops_test.tmp_path / "resources"
     tmpdir.mkdir(parents=True, exist_ok=True)
     if not current_resources:
         # If they are not locally available, try to build them
         log.info("Build Resources...")
-        build_script = resource_path / "build-canal-resources.sh"
+        build_script = script_path / "build-canal-resources.sh"
         rc, stdout, stderr = await ops_test.run(
             *shlex.split("sudo {}".format(build_script)), cwd=tmpdir, check=False
         )
@@ -40,20 +41,16 @@ async def setup_resources(ops_test):
     if not current_resources:
         # if we couldn't build them, just download a fixed version
         log.info("Downloading Resources...")
-        resources = (
-            resource+arch
-            for resource in ("flannel", "calico", "calico-upgrade")
-            for arch in ("", "-arm64")
+        fetch_script = script_path / "fetch-charm-store-resources.sh"
+        rc, stdout, stderr = await ops_test.run(
+            *shlex.split(str(fetch_script)), cwd=tmpdir, check=False
         )
-        await asyncio.gather(
-            *(
-                _retrieve_url(859, resource, tmpdir / "{}.tar.gz".format(resource))
-                for resource in chain(resources, ("calico-node-image",))
-            ),
-        )
+        if rc != 0:
+            err = (stderr or stdout).strip()
+            log.warning("fetch-charm-store-resources failed: {}".format(err))
         current_resources = list(Path(tmpdir).glob("*.tar.gz"))
         resource_path = tmpdir
     if not current_resources:
         pytest.fail("Could not prepare necessary resources for testing charm")
-
+    ensure_arch_names(current_resources)
     yield resource_path
