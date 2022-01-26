@@ -38,7 +38,7 @@ services:
     options:
       ignore-loose-rpf: true
   kubernetes-control-plane:
-    charm: cs:~containers/kubernetes-master
+    charm: kubernetes-control-plane
     channel: edge
     constraints: cores=2 mem=4G root-disk=16G
     expose: true
