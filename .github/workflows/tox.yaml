@@ -31,18 +31,19 @@ jobs:
     - name: Validate Wheelhouse
       run: tox -vve validate-wheelhouse
   integration-test:
-    name: Integration test
-    runs-on: ubuntu-latest
+    name: Integration test with VMWare
+    runs-on: self-hosted
     timeout-minutes: 360
     steps:
       - name: Check out code
         uses: actions/checkout@v2
       - name: Setup operator environment
-        uses: charmed-kubernetes/actions-operator@master
+        uses: charmed-kubernetes/actions-operator@main
         with:
-          provider: lxd
-      - name: Install Docker
-        run: sudo snap install docker
+          provider: vsphere
+          credentials-yaml: ${{ secrets.CREDENTIALS_YAML }}
+          clouds-yaml: ${{ secrets.CLOUDS_YAML }}
+          bootstrap-options: "--model-default datastore=vsanDatastore --model-default primary-network=VLAN_2764"
       - name: Install juju-crashdump
         run: sudo snap install juju-crashdump --classic
       - name: Run test

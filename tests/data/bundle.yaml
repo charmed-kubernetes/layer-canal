@@ -37,8 +37,8 @@ services:
       calico-node-image: {{resource_path}}/calico-node-image.tar.gz
     options:
       ignore-loose-rpf: true
-  kubernetes-master:
-    charm: cs:~containers/kubernetes-master
+  kubernetes-control-plane:
+    charm: kubernetes-control-plane
     channel: edge
     constraints: cores=2 mem=4G root-disk=16G
     expose: true
@@ -59,11 +59,11 @@ services:
     to:
     - '1'
 relations:
-- - kubernetes-master:kube-control
+- - kubernetes-control-plane:kube-control
   - kubernetes-worker:kube-control
-- - kubernetes-master:certificates
+- - kubernetes-control-plane:certificates
   - easyrsa:client
-- - kubernetes-master:etcd
+- - kubernetes-control-plane:etcd
   - etcd:db
 - - kubernetes-worker:certificates
   - easyrsa:client
@@ -72,11 +72,11 @@ relations:
 - - canal:etcd
   - etcd:db
 - - canal:cni
-  - kubernetes-master:cni
+  - kubernetes-control-plane:cni
 - - canal:cni
   - kubernetes-worker:cni
 - - containerd:containerd
   - kubernetes-worker:container-runtime
 - - containerd:containerd
-  - kubernetes-master:container-runtime
+  - kubernetes-control-plane:container-runtime
 
