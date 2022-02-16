@@ -18,6 +18,20 @@ test -d "${canal_temp}" && rm -rf "${canal_temp}"
 mkdir -p "${canal_temp}"
 
 
+# FLANNEL RESOURCES:
+# The flannel version in the canal and flannel charms are the same; use flannel's
+# build-flannel-resource.sh so we build identical resources for the canal charm.
+FLANNEL_COMMIT="c4b1f996c9813567c5a60502e4ee14bafb4299e8"
+FLANNEL_REPO="https://github.com/juju-solutions/charm-flannel.git"
+
+git clone $FLANNEL_REPO "${canal_temp}/flannel"
+pushd ${canal_temp}/flannel
+git checkout "$FLANNEL_COMMIT"
+ARCH="$ARCH" ./build-flannel-resources.sh
+mv flannel-*.gz ${canal_root}
+popd
+
+
 # CALICO RESOURCES:
 # The calico version in the canal and calico charms diverged in CK 1.24. Fetch
 # and prep specific calico resources for the canal charm.
@@ -69,19 +83,6 @@ for arch in ${ARCH}; do
   rm -rf resource-build-$arch
 done
 
-
-# FLANNEL RESOURCES:
-# The flannel version in the canal and flannel charms are the same; use flannel's
-# build-flannel-resource.sh so we build identical resources for the canal charm.
-FLANNEL_COMMIT="c4b1f996c9813567c5a60502e4ee14bafb4299e8"
-FLANNEL_REPO="https://github.com/juju-solutions/charm-flannel.git"
-
-git clone $FLANNEL_REPO "${canal_temp}/flannel"
-pushd ${canal_temp}/flannel
-git checkout "$FLANNEL_COMMIT"
-ARCH="$ARCH" ./build-flannel-resources.sh
-mv flannel-*.gz ${canal_root}
-popd
 
 test -d "${canal_temp}" && rm -rf "${canal_temp}"
 
