@@ -46,18 +46,17 @@ applications:
     charm: /tmp/charm-builds/canal
     resources:
       calico: /path/to/layer-canal/calico-amd64.tar.gz
-      calico-upgrade: /path/to/layer-canal/calico-upgrade-amd64.tar.gz
       flannel: /path/to/layer-canal/flannel-amd64.tar.gz
 ```
 
 Then deploy Charmed Kubernetes with your locally built canal charm:
 
 ```
-juju deploy cs:~containers/canonical-kubernetes-canal --overlay local-canal.yaml
+juju deploy canonical-kubernetes-canal --overlay local-canal.yaml
 ```
 
 ## Helpful links
 
-* [Getting Started with charm development](https://jaas.ai/docs/getting-started-with-charm-development)
-* [Charm tools documentation](https://jaas.ai/docs/charm-tools)
+* [Getting Started with charm development](https://discourse.charmhub.io/t/getting-started-with-charm-development/1118)
+* [Charm tools documentation](https://discourse.charmhub.io/t/charm-tools/1180)
 * [Charmed Kubernetes Canal documentation](https://ubuntu.com/kubernetes/docs/cni-canal)
