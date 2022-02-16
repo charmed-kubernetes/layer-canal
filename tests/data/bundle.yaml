@@ -9,17 +9,17 @@ machines:
     series: focal
 services:
   containerd:
-    charm: cs:~containers/containerd
-    channel: edge
+    charm: containerd
+    channel: latest/edge
   easyrsa:
-    charm: cs:~containers/easyrsa
-    channel: edge
+    charm: easyrsa
+    channel: latest/edge
     num_units: 1
     to:
     - '1'
   etcd:
-    charm: cs:~containers/etcd
-    channel: edge
+    charm: etcd
+    channel: latest/edge
     num_units: 1
     options:
       channel: 3.4/stable
@@ -32,29 +32,27 @@ services:
       flannel-arm64: {{resource_path}}/flannel-arm64.tar.gz
       calico: {{resource_path}}/calico-amd64.tar.gz
       calico-arm64: {{resource_path}}/calico-arm64.tar.gz
-      calico-upgrade: {{resource_path}}/calico-upgrade-amd64.tar.gz
-      calico-upgrade-arm64: {{resource_path}}/calico-upgrade-arm64.tar.gz
       calico-node-image: {{resource_path}}/calico-node-image.tar.gz
     options:
       ignore-loose-rpf: true
-  kubernetes-master:
-    charm: cs:~containers/kubernetes-master
-    channel: edge
+  kubernetes-control-plane:
+    charm: kubernetes-control-plane
+    channel: latest/edge
     constraints: cores=2 mem=4G root-disk=16G
     expose: true
     num_units: 1
     options:
-      channel: 1.22/edge
+      channel: 1.23/edge
     to:
     - '0'
   kubernetes-worker:
-    charm: cs:~containers/kubernetes-worker
-    channel: edge
+    charm: kubernetes-worker
+    channel: latest/edge
     constraints: cores=4 mem=4G root-disk=16G
     expose: true
     num_units: 1
     options:
-      channel: 1.22/edge
+      channel: 1.23/edge
       kubelet-extra-config: "{protectKernelDefaults: false}"
     to:
     - '1'

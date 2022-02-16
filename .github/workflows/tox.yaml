@@ -40,8 +40,11 @@ jobs:
       - name: Setup operator environment
         uses: charmed-kubernetes/actions-operator@master
         with:
-          provider: lxd
-      - name: Install Docker
+          provider: vsphere
+          credentials-yaml: ${{ secrets.CREDENTIALS_YAML }}
+          clouds-yaml: ${{ secrets.CLOUDS_YAML }}
+          bootstrap-options: "--model-default datastore=vsanDatastore --model-default primary-network=VLAN_2764"
+      - name: Install docker (flannel resources)
         run: sudo snap install docker
       - name: Install juju-crashdump
         run: sudo snap install juju-crashdump --classic
