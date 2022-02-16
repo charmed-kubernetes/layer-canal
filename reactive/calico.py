@@ -99,12 +99,6 @@ def repull_calico_node_image():
     remove_state('calico.service.installed')
 
 
-@when('leadership.is_leader')
-def v3_data_ready():
-    leader_set({'calico-v3-data-ready': True})
-
-
-@when('leadership.set.calico-v3-data-ready')
 @when_not('calico.binaries.installed')
 def install_calico_binaries():
     ''' Unpack the Calico binaries. '''
@@ -197,8 +191,7 @@ def get_bind_address():
 
 
 @when('calico.binaries.installed', 'etcd.available',
-      'calico.etcd-credentials.installed',
-      'leadership.set.calico-v3-data-ready')
+      'calico.etcd-credentials.installed')
 @when_not('calico.service.installed')
 def install_calico_service():
     ''' Install the calico-node systemd service. '''
@@ -237,8 +230,7 @@ def ignore_loose_rpf_changed():
 
 
 @when('calico.binaries.installed', 'etcd.available',
-      'calico.etcd-credentials.installed',
-      'leadership.set.calico-v3-data-ready')
+      'calico.etcd-credentials.installed')
 @when_not('calico.pool.configured')
 def configure_calico_pool(etcd):
     ''' Configure Calico IP pool. '''
@@ -285,8 +277,7 @@ def reconfigure_calico_pool():
     remove_state('calico.pool.configured')
 
 
-@when('etcd.available', 'calico.service.installed', 'leadership.is_leader',
-      'leadership.set.calico-v3-data-ready')
+@when('etcd.available', 'calico.service.installed', 'leadership.is_leader')
 @when_not('calico.npc.deployed')
 def deploy_network_policy_controller():
     ''' Deploy the Calico network policy controller. '''
