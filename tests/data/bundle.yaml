@@ -10,16 +10,16 @@ machines:
 services:
   containerd:
     charm: containerd
-    channel: edge
+    channel: latest/edge
   easyrsa:
     charm: easyrsa
-    channel: edge
+    channel: latest/edge
     num_units: 1
     to:
     - '1'
   etcd:
     charm: etcd
-    channel: edge
+    channel: latest/edge
     num_units: 1
     options:
       channel: 3.4/stable
@@ -37,7 +37,7 @@ services:
       ignore-loose-rpf: true
   kubernetes-control-plane:
     charm: kubernetes-control-plane
-    channel: edge
+    channel: latest/edge
     constraints: cores=2 mem=4G root-disk=16G
     expose: true
     num_units: 1
@@ -47,7 +47,7 @@ services:
     - '0'
   kubernetes-worker:
     charm: kubernetes-worker
-    channel: edge
+    channel: latest/edge
     constraints: cores=4 mem=4G root-disk=16G
     expose: true
     num_units: 1
