@@ -9,6 +9,7 @@ description: |
   solution - combining Calico's industry-leading network policy enforcement
   with the rich superset of Calico and flannel overlay and non-overlay network
   connectivity options.
+docs: https://discourse.charmhub.io/t/canal-docs-index/6168
 series:
   - focal
   - bionic
