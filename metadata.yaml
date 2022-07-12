@@ -12,6 +12,7 @@ description: |
 docs: https://discourse.charmhub.io/t/canal-docs-index/6168
 series:
   - focal
+  - jammy
   - bionic
   - xenial
 subordinate: true
