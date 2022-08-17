@@ -42,7 +42,8 @@ async def test_build_and_deploy(ops_test, setup_resources):
         await ops_test.run(*shlex.split(cmd))
         k8s_cp = "kubernetes-control-plane"
         unit = ops_test.model.applications[k8s_cp].units[0]
-        response = await unit.run(
+        action = await unit.run(
             "kubectl --kubeconfig /root/.kube/config get all -A", timeout=30
         )
-        log.info(response.results["Stdout"] or response.results["Stderr"])
+        response = await action.wait()
+        log.info(response.results["stdout"] or response.results["stderr"])
