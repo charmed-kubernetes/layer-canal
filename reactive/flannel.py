@@ -9,7 +9,7 @@ from charms.reactive import set_state, remove_state, when, when_not, hook
 from charms.reactive import endpoint_from_flag
 from charms.reactive.flags import clear_flag
 from charms.reactive.helpers import data_changed
-from charms.templating.jinja2 import render
+from charmhelpers.core.templating import render
 from charmhelpers.core.host import service_start, service_stop, service_restart
 from charmhelpers.core.host import service_running, service
 from charmhelpers.core.hookenv import log, resource_get, config

@@ -6,7 +6,7 @@ from subprocess import check_output, STDOUT
 from charms.reactive import set_state, remove_state, when, when_not, hook
 from charms.reactive import when_any
 from charms.reactive import endpoint_from_flag
-from charms.templating.jinja2 import render
+from charmhelpers.core.templating import render
 from charmhelpers.core import hookenv
 from charmhelpers.core.hookenv import config
 from charmhelpers.core.hookenv import application_version_set
