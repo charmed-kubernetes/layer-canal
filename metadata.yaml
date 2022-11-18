@@ -11,9 +11,8 @@ description: |
   connectivity options.
 docs: https://discourse.charmhub.io/t/canal-docs-index/6168
 series:
-  - focal
   - jammy
-  - bionic
+  - focal
 subordinate: true
 tags:
   - networking
