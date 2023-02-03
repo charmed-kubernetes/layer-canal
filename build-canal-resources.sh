@@ -21,7 +21,7 @@ mkdir -p "${canal_temp}"
 # FLANNEL RESOURCES:
 # The flannel version in the canal and flannel charms are the same; use flannel's
 # build-flannel-resource.sh so we build identical resources for the canal charm.
-FLANNEL_COMMIT="5e3076746aeb86bddda8a920a6ec466e9511bae5"
+FLANNEL_COMMIT="16d6841f019acc4ff6e5b04059ff4bee6b50057e"
 FLANNEL_REPO="https://github.com/charmed-kubernetes/charm-flannel.git"
 
 git clone $FLANNEL_REPO "${canal_temp}/flannel"
