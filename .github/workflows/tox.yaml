@@ -1,52 +1,106 @@
 name: Run tests with Tox
 
 on:
-  push:
-    branches: [main]
   pull_request:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
   call-inclusive-naming-check:
-    name: Inclusive Naming
+    name: Inclusive naming
     uses: canonical-web-and-design/Inclusive-naming/.github/workflows/woke.yaml@main
     with:
       fail-on-error: "true"
+
+  validate-wheelhouse:
+    name: Validate Wheelhouse
+    uses: charmed-kubernetes/workflows/.github/workflows/validate-wheelhouse.yaml@main
 
   lint-unit:
     name: Lint Unit
     uses: charmed-kubernetes/workflows/.github/workflows/lint-unit.yaml@main
 
-  validate-wheelhouse:
-    uses: charmed-kubernetes/workflows/.github/workflows/validate-wheelhouse.yaml@main  
-
-  integration-test:
-    name: Integration test with VMWare
-    runs-on: self-hosted
+  resources-build:
+    name: Build Resources with docker
+    runs-on: ubuntu-22.04
     needs:
-      - call-inclusive-naming-check
       - lint-unit
-      - validate-wheelhouse
-    timeout-minutes: 360
     steps:
       - name: Check out code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
+      - name: Install Docker
+        run:  sudo snap install docker
+      - name: Build Resources
+        run:  sudo ./build-canal-resources.sh
+      - name: Upload flannel artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: flannel-resources
+          path: ./flannel-*.tar.gz
+      - name: Upload calico artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: calico-resources
+          path: ./calico*.tar.gz
+      - name: Upload calico-node-image artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: calico-node-image-resources
+          path: ./calico-node-image.tar.gz
+
+  integration-tests:
+    name: Integration test with Vsphere
+    runs-on: self-hosted
+    timeout-minutes: 60
+    needs:
+      - resources-build
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.8
+
       - name: Setup operator environment
         uses: charmed-kubernetes/actions-operator@main
         with:
           provider: vsphere
           credentials-yaml: ${{ secrets.CREDENTIALS_YAML }}
           clouds-yaml: ${{ secrets.CLOUDS_YAML }}
-          bootstrap-options: "--model-default datastore=vsanDatastore --model-default primary-network=VLAN_2764"
-      - name: Install docker (flannel resources)
-        run: sudo snap install docker
-      - name: Install juju-crashdump
-        run: sudo snap install juju-crashdump --classic
-      - name: Run test
-        run: tox -e integration
-      - name: Upload crashdump
-        if: ${{ failure() }}
-        uses: actions/upload-artifact@v2
+          bootstrap-options: "${{ secrets.FOCAL_BOOTSTRAP_OPTIONS }} --model-default datastore=vsanDatastore --model-default primary-network=VLAN_2764"
+          bootstrap-constraints: "arch=amd64 cores=2 mem=4G"
+
+      - name: Download flannel artifacts
+        uses: actions/download-artifact@v3
         with:
-          name: crashdump
-          path: juju-crashdump-*.tar.xz
+          name: flannel-resources
+
+      - name: Download calico artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: calico-resources
+
+      - name: Download calico-node-image artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: calico-node-image-resources
+
+      - name: Run integration test
+        run: tox -e integration
+
+      - name: Setup Debug Artifact Collection
+        if: failure()
+        run: mkdir tmp
+
+      - name: Collect Juju Logs
+        if: failure()
+        run: juju debug-log --replay --no-tail | tee tmp/juju-status.txt
+
+      - name: Upload debug artifacts
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-run-artifacts
+          path: tmp
