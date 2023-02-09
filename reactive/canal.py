@@ -128,9 +128,9 @@ def stop():
 @when(
     "flannel.service.started",
     "calico.service.installed",
-    "nrpe-external-master.available",
+    "nrpe-external-master.available",  # wokeignore:rule=master
 )
-@when_not("nrpe-external-master.initial-config")
+@when_not("nrpe-external-master.initial-config")  # wokeignore:rule=master
 def configure_nrpe(unused=None):
     hookenv.log(
         "Configuring nrpe checks for services: " "{}".format(MONITORED_SERVICES)
@@ -143,17 +143,17 @@ def configure_nrpe(unused=None):
     nrpe.add_init_service_checks(nrpe_setup, MONITORED_SERVICES, current_unit)
     nrpe_setup.write()
 
-    set_state("nrpe-external-master.initial-config")
+    set_state("nrpe-external-master.initial-config")  # wokeignore:rule=master
 
 
 @when_any("config.changed.nagios_context", "config.changed.nagios_servicegroups")
-@when("nrpe-external-master.initial-config")
+@when("nrpe-external-master.initial-config")  # wokeignore:rule=master
 def update_nagios():
     configure_nrpe()
 
 
-@when_not("nrpe-external-master.available")
-@when("nrpe-external-master.initial-config")
+@when_not("nrpe-external-master.available")  # wokeignore:rule=master
+@when("nrpe-external-master.initial-config")  # wokeignore:rule=master
 def remove_nrpe_config():
     hookenv.log("Removing nrpe checks for services: " "{}".format(MONITORED_SERVICES))
     hostname = nrpe.get_nagios_hostname()
@@ -163,7 +163,7 @@ def remove_nrpe_config():
         nrpe_setup.remove_check(shortname=check)
     nrpe_setup.write()
 
-    remove_state("nrpe-external-master.initial-config")
+    remove_state("nrpe-external-master.initial-config")  # wokeignore:rule=master
 
 
 def get_flannel_subnet():

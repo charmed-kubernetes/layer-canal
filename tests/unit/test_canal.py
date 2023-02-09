@@ -24,6 +24,7 @@ def test_add_nrpe_service_checks(mocker):
 
     add_check_mock.assert_called_with(nrpe_mock, canal.MONITORED_SERVICES, unit_name)
     nrpe_mock.write.assert_called_once()
+    # wokeignore:rule=master
     canal.set_state.assert_called_with("nrpe-external-master.initial-config")
 
 
@@ -40,6 +41,7 @@ def test_remove_nrpe_service_checks(mocker):
 
     nrpe_mock.remove_check.assert_has_calls(expected_calls)
     nrpe_mock.write.assert_called_once()
+    # wokeignore:rule=master
     canal.remove_state.asssert_called_with("nrpe-external-master.initial-config")
 
 
