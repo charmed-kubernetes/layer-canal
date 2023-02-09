@@ -171,13 +171,14 @@ def configure_network(etcd):
         }
     })
     cmd = "etcdctl "
-    cmd += "--endpoint '{0}' ".format(etcd.get_connection_string())
-    cmd += "--cert-file {0} ".format(ETCD_CERT_PATH)
-    cmd += "--key-file {0} ".format(ETCD_KEY_PATH)
-    cmd += "--ca-file {0} ".format(ETCD_CA_PATH)
-    cmd += "set /coreos.com/network/config '{0}'".format(data)
+    cmd += "--endpoints '{0}' ".format(etcd.get_connection_string())
+    cmd += "--cert {0} ".format(ETCD_CERT_PATH)
+    cmd += "--key {0} ".format(ETCD_KEY_PATH)
+    cmd += "--cacert {0} ".format(ETCD_CA_PATH)
+    cmd += "put /coreos.com/network/config '{0}'".format(data)
+    env = dict(os.environ, ETCDCTL_API="3")
     try:
-        check_call(split(cmd))
+        check_call(split(cmd), env=env)
         return True
 
     except CalledProcessError:
