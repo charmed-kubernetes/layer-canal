@@ -1,0 +1,26 @@
+description: A minimal Kubernetes cluster with two machines with virtual networks provided by Canal.
+series: &series {{ series }}
+applications:
+  calico: null
+  kubernetes-control-plane:
+    options:
+      channel: {{ snap_channel }}
+  kubernetes-worker:
+    options:
+      channel: {{ snap_channel }}
+  canal:
+    charm: {{ charm }}
+    channel: null
+    resources:
+      flannel: {{flannel_amd64|default("0")}}
+      flannel-arm64: {{flannel_arm64|default("0")}}
+      calico: {{calico_amd64|default("0")}}
+      calico-arm64: {{calico_arm64|default("0")}}
+      calico-node-image: {{calico_node_image|default("0")}}
+relations:
+- - canal:etcd
+  - etcd:db
+- - canal:cni
+  - kubernetes-control-plane:cni
+- - canal:cni
+  - kubernetes-worker:cni
