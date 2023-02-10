@@ -8,13 +8,13 @@ def pytest_addoption(parser):
     parser.addoption(
         "--series",
         type=str,
-        default="focal",
+        default="jammy",
         help="Set series for the machine units",
     )
     parser.addoption(
         "--snap-channel",
         type=str,
-        default="1.24/stable",
+        default="latest/stable",
         help="Set snap channel for the control-plane & worker units",
     )
 
