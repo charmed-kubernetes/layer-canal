@@ -2,9 +2,6 @@
 set -eux
 
 # This script will generate calico and flannel resources needed for canal.
-#
-# If you want to fetch existing resources from the calico and flannel charms
-# in the charm store, see fetch-charm-store-resources.sh in this repository.
 
 ARCH=${ARCH:-"amd64 arm64"}
 

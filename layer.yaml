@@ -7,4 +7,4 @@ includes:
    - 'layer:leadership'
    - 'layer:status'
    - 'layer:kubernetes-common'
-repo: https://github.com/juju-solutions/layer-canal.git
+repo: https://github.com/charmed-kubernetes/layer-canal.git
