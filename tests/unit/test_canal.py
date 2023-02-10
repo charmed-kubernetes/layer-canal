@@ -1,4 +1,4 @@
-from unittest.mock import call, MagicMock
+from unittest.mock import MagicMock, call, mock_open, patch
 from charmhelpers.contrib.charmsupport import nrpe
 from reactive import canal
 
@@ -7,6 +7,22 @@ def test_series_upgrade():
     assert canal.status.blocked.call_count == 0
     canal.pre_series_upgrade()
     assert canal.status.blocked.call_count == 1
+
+
+def test_set_canal_version():
+    with patch.object(canal, "check_output") as mock_co:
+        flannel_ver = "Major.Minor+Patch"
+        mock_co.return_value = f"{flannel_ver}".encode()
+
+        with patch.object(canal, "application_version_set") as mock_avs:
+            canal.set_canal_version()
+            mock_avs.assert_called_once_with(f"{flannel_ver}/3.10.1")
+
+
+def test_get_flannel_subnet():
+    subnet = "zippitydoda"
+    with patch("builtins.open", mock_open(read_data=f"FLANNEL_SUBNET={subnet}")):
+        assert canal.get_flannel_subnet() == subnet
 
 
 def test_add_nrpe_service_checks(mocker):
