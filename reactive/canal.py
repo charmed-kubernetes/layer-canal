@@ -1,5 +1,6 @@
 import os
 import traceback
+from ipaddress import ip_network
 from shlex import split
 from subprocess import check_output, STDOUT
 
@@ -54,7 +55,9 @@ def configure_cni():
     """Configure Calico CNI."""
     status.maintenance("Configuring Calico CNI")
     try:
-        subnet = get_flannel_subnet()
+        # Since CNI 1.2.0, the host-local plugin fails if configured with a
+        # subnet that has host bits set. Need to strip host bits here.
+        subnet = get_flannel_subnet(strip_host_bits=True)
     except FlannelSubnetNotFound:
         hookenv.log(traceback.format_exc())
         status.waiting("Waiting for Flannel")
@@ -166,12 +169,15 @@ def remove_nrpe_config():
     remove_state("nrpe-external-master.initial-config")  # wokeignore:rule=master
 
 
-def get_flannel_subnet():
+def get_flannel_subnet(strip_host_bits=False):
     """Returns the flannel subnet reserved for this unit"""
     try:
         with open("/run/flannel/subnet.env") as f:
             raw_data = dict(line.strip().split("=") for line in f)
-        return raw_data["FLANNEL_SUBNET"]
+        subnet = raw_data["FLANNEL_SUBNET"]
+        if strip_host_bits:
+            subnet = ip_network(subnet, strict=False).exploded
+        return subnet
     except FileNotFoundError as e:
         raise FlannelSubnetNotFound() from e
 
