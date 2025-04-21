@@ -7,18 +7,25 @@ on:
 
 jobs:
   call-inclusive-naming-check:
-    name: Inclusive naming
-    uses: canonical-web-and-design/Inclusive-naming/.github/workflows/woke.yaml@main
+    name: Inclusive Naming
+    uses: canonical/inclusive-naming/.github/workflows/woke.yaml@main
     with:
       fail-on-error: "true"
-
-  validate-wheelhouse:
-    name: Validate Wheelhouse
-    uses: charmed-kubernetes/workflows/.github/workflows/validate-wheelhouse.yaml@main
 
   lint-unit:
     name: Lint Unit
     uses: charmed-kubernetes/workflows/.github/workflows/lint-unit.yaml@main
+    with:
+      python: "['3.10', '3.12']"
+    needs:
+      - call-inclusive-naming-check
+
+  validate-wheelhouse:
+    uses: charmed-kubernetes/workflows/.github/workflows/validate-wheelhouse.yaml@main
+    with:
+      python: "['3.10', '3.12']"
+    needs:
+      - call-inclusive-naming-check
 
   resources-build:
     name: Build Resources with docker
@@ -27,23 +34,23 @@ jobs:
       - lint-unit
     steps:
       - name: Check out code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Install Docker
         run:  sudo snap install docker
       - name: Build Resources
         run:  sudo ./build-canal-resources.sh
       - name: Upload flannel artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: flannel-resources
           path: ./flannel-*.tar.gz
       - name: Upload calico artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: calico-resources
           path: ./calico*.tar.gz
       - name: Upload calico-node-image artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: calico-node-image-resources
           path: ./calico-node-image.tar.gz
@@ -56,35 +63,43 @@ jobs:
       - resources-build
     steps:
       - name: Check out code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.12'
+
+      - id: charmcraft
+        run: echo "channel=$(cat .charmcraft-channel)" >> $GITHUB_OUTPUT
 
       - name: Setup operator environment
         uses: charmed-kubernetes/actions-operator@main
         with:
           provider: vsphere
-          juju-channel: 3.1/stable
+          juju-channel: 3/stable
+          charmcraft-channel: ${{ steps.charmcraft.outputs.channel }}
           credentials-yaml: ${{ secrets.CREDENTIALS_YAML }}
           clouds-yaml: ${{ secrets.CLOUDS_YAML }}
-          bootstrap-options: "${{ secrets.FOCAL_BOOTSTRAP_OPTIONS }} --model-default datastore=vsanDatastore --model-default primary-network=VLAN_2764"
+          bootstrap-options: >-
+            ${{ secrets.JAMMY_BOOTSTRAP_OPTIONS }}
+            --model-default datastore=vsanDatastore
+            --model-default primary-network=VLAN_2763
+            --model-default force-vm-hardware-version=17
           bootstrap-constraints: "arch=amd64 cores=2 mem=4G"
 
       - name: Download flannel artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: flannel-resources
 
       - name: Download calico artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: calico-resources
 
       - name: Download calico-node-image artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: calico-node-image-resources
 
@@ -101,7 +116,7 @@ jobs:
 
       - name: Upload debug artifacts
         if: failure()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: test-run-artifacts
           path: tmp
